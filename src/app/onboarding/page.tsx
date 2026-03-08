@@ -31,6 +31,7 @@ export default function OnBoarding(){
             :[...prev.interests,interest]
         }))
     }
+
     return (
     <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
@@ -42,11 +43,10 @@ export default function OnBoarding(){
           ))}
         </div>
 
-        {/* Шаг 1 — Основная информация */}
+        {/* Шаг 1 */}
         {step === 1 && (
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Основная информация</h2>
-            
             <label className="block text-gray-600 mb-1">Класс</label>
             <select
               className="w-full border rounded-lg p-3 mb-4 text-gray-800"
@@ -56,7 +56,6 @@ export default function OnBoarding(){
               <option value="">Выбери класс</option>
               {[8,9,10,11].map(g => <option key={g} value={g}>{g} класс</option>)}
             </select>
-
             <label className="block text-gray-600 mb-1">Город</label>
             <input
               className="w-full border rounded-lg p-3 mb-4 text-gray-800"
@@ -64,7 +63,6 @@ export default function OnBoarding(){
               value={data.city}
               onChange={e => setData({...data, city: e.target.value})}
             />
-
             <label className="block text-gray-600 mb-1">Средний балл (GPA)</label>
             <input
               className="w-full border rounded-lg p-3 mb-4 text-gray-800"
@@ -74,7 +72,6 @@ export default function OnBoarding(){
               value={data.gpa}
               onChange={e => setData({...data, gpa: e.target.value})}
             />
-
             <label className="block text-gray-600 mb-1">Балл ЕНТ (если сдавал)</label>
             <input
               className="w-full border rounded-lg p-3 mb-6 text-gray-800"
@@ -83,7 +80,6 @@ export default function OnBoarding(){
               value={data.ent_score}
               onChange={e => setData({...data, ent_score: e.target.value})}
             />
-
             <button
               onClick={() => setStep(2)}
               disabled={!data.grade || !data.city || !data.gpa}
@@ -94,12 +90,11 @@ export default function OnBoarding(){
           </div>
         )}
 
-        {/* Шаг 2 — Интересы */}
+        {/* Шаг 2 */}
         {step === 2 && (
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Твои интересы</h2>
             <p className="text-gray-500 mb-6">Выбери одно или несколько направлений</p>
-            
             <div className="grid grid-cols-2 gap-3 mb-8">
               {interests.map(interest => (
                 <button
@@ -115,7 +110,6 @@ export default function OnBoarding(){
                 </button>
               ))}
             </div>
-
             <div className="flex gap-3">
               <button onClick={() => setStep(1)} className="flex-1 border-2 border-gray-200 text-gray-600 font-bold py-3 rounded-lg hover:bg-gray-50">
                 ← Назад
@@ -131,12 +125,11 @@ export default function OnBoarding(){
           </div>
         )}
 
-        {/* Шаг 3 — Оценки */}
+        {/* Шаг 3 */}
         {step === 3 && (
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Оценки по предметам</h2>
             <p className="text-gray-500 mb-6">Укажи свои оценки (1-5)</p>
-            
             <div className="space-y-3 mb-8">
               {Object.keys(data.subjects).map(subject => (
                 <div key={subject} className="flex items-center gap-3">
@@ -155,54 +148,16 @@ export default function OnBoarding(){
                 </div>
               ))}
             </div>
-
             <div className="flex gap-3">
               <button onClick={() => setStep(2)} className="flex-1 border-2 border-gray-200 text-gray-600 font-bold py-3 rounded-lg hover:bg-gray-50">
                 ← Назад
               </button>
               <button
-            onClick={async () => {
-                    localStorage.setItem('studentData', JSON.stringify(data))
-                const { supabase } = await import('@/lib/supabase')
-
-                const { data: student } = await supabase
-                    .from('students')
-                    .insert({
-                        grade: parseInt(data.grade),
-                        city: data.city,
-                        gpa: parseFloat(data.gpa),
-                        ent_score: data.ent_score ? parseInt(data.ent_score): null 
-                    }) 
-                .select()
-                .single()
-
-            if(student){
-                
-                const subjects = Object.entries(data.subjects)
-                .filter(([, grade]) => grade !== '')
-                .map(([subject, grade]) => ({
-                  student_id: student.id,
-                  subject,
-                  grade: parseInt(grade)  
-                }))
-
-            if(subjects.length > 0) {
-                await supabase.from('student_subjects').insert(subjects)
-            }
-
-            const interests = data.interests.map(interest => ({
-                student_id: student.id,
-                interest
-            }))
-
-            if(interests.length > 0){
-                await supabase.from('student_interests').insert(interests)
-            }
-         }    
-
-
-         router.push('/dashboard')
-
+                onClick={async () => {
+                  localStorage.setItem('studentData', JSON.stringify(data))
+                  const { saveStudent } = await import('@/services/studentService')
+                  await saveStudent(data)
+                  router.push('/dashboard')
                 }}
                 className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition"
               >
