@@ -1,18 +1,25 @@
 'use client'
 import { useUser } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
-import { getProfile, saveProfile } from '@/services/profileService'
-import { UserProfile } from '@/types/student'
+import { getProfile, saveProfile, getPortfolio, addPortfolioItem, deletePortfolioItem } from '@/services/profileService'
+import { UserProfile, PortfolioItem } from '@/types/student'
 import ProfileForm from '@/components/profile/ProfileForm'
 import AcademicStats from '@/components/profile/AcademicStats'
+import GoalsSection from '@/components/profile/GoalsSection'
+import Portfolio from '@/components/profile/Portfolio'
+
 export default function Profile() {
   const { user } = useUser()
   const [profile, setProfile] = useState<Partial<UserProfile>>({})
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([])
   const [saved, setSaved] = useState(false)
   const [editing, setEditing] = useState(false)
 
   useEffect(() => {
-    if (user) loadProfile()
+    if (user) {
+      loadProfile()
+      loadPortfolio()
+    }
   }, [user])
 
   async function loadProfile() {
@@ -30,12 +37,28 @@ export default function Profile() {
     }
   }
 
+  async function loadPortfolio() {
+    if (!user) return
+    const data = await getPortfolio(user.id)
+    setPortfolio(data)
+  }
+
   async function handleSave() {
     if (!user) return
     await saveProfile({ ...profile, clerk_id: user.id })
     setSaved(true)
     setEditing(false)
     setTimeout(() => setSaved(false), 3000)
+  }
+
+  async function handleAddPortfolio(item: Omit<PortfolioItem, 'id' | 'created_at'>) {
+    const newItem = await addPortfolioItem(item)
+    if (newItem) setPortfolio([...portfolio, newItem])
+  }
+
+  async function handleDeletePortfolio(id: string) {
+    await deletePortfolioItem(id)
+    setPortfolio(portfolio.filter(item => item.id !== id))
   }
 
   if (!user) return (
@@ -68,10 +91,23 @@ export default function Profile() {
         />
 
         <AcademicStats
-  profile={profile}
-  editing={editing}
-  onChange={setProfile}
-/>
+          profile={profile}
+          editing={editing}
+          onChange={setProfile}
+        />
+
+        <GoalsSection
+          profile={profile}
+          editing={editing}
+          onChange={setProfile}
+        />
+
+        <Portfolio
+          items={portfolio}
+          clerkId={user.id}
+          onAdd={handleAddPortfolio}
+          onDelete={handleDeletePortfolio}
+        />
 
         <div className="text-center mt-8 flex justify-center gap-6">
           <a href="/" className="text-blue-200 hover:text-white underline">Главная</a>

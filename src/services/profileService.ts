@@ -22,3 +22,34 @@ export async function saveProfile(profile: Partial<UserProfile>): Promise<UserPr
   if (error) return null
   return data
 }
+
+export async function getPortfolio(clerkId: string): Promise<PortfolioItem[]> {
+  const { data, error } = await supabase
+    .from('portfolio')
+    .select('*')
+    .eq('clerk_id', clerkId)
+    .order('year', { ascending: false })
+
+  if (error) return []
+  return data
+}
+
+export async function addPortfolioItem(item: Omit<PortfolioItem, 'id' | 'created_at'>): Promise<PortfolioItem | null> {
+  const { data, error } = await supabase
+    .from('portfolio')
+    .insert(item)
+    .select()
+    .single()
+
+  if (error) return null
+  return data
+}
+
+export async function deletePortfolioItem(id: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('portfolio')
+    .delete()
+    .eq('id', id)
+
+  return !error
+}
