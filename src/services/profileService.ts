@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { UserProfile } from '@/types/student'
+import { UserProfile, PortfolioItem } from '@/types/student'
 
 export async function getProfile(clerkId: string): Promise<UserProfile | null> {
   const { data, error } = await supabase

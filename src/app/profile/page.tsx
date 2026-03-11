@@ -1,4 +1,6 @@
 'use client'
+import Link from 'next/link'
+import Image from 'next/image'
 import { useUser } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
 import { getProfile, saveProfile, getPortfolio, addPortfolioItem, deletePortfolioItem } from '@/services/profileService'
@@ -16,32 +18,30 @@ export default function Profile() {
   const [editing, setEditing] = useState(false)
 
   useEffect(() => {
-    if (user) {
-      loadProfile()
-      loadPortfolio()
+    if (!user) return
+
+    const loadProfile = async () => {
+      const data = await getProfile(user.id)
+      if (data) {
+        setProfile(data)
+      } else {
+        setProfile({
+          clerk_id: user.id,
+          full_name: user.fullName || '',
+          avatar_url: user.imageUrl || '',
+        })
+        setEditing(true)
+      }
     }
+
+    const loadPortfolio = async () => {
+      const data = await getPortfolio(user.id)
+      setPortfolio(data)
+    }
+
+    loadProfile()
+    loadPortfolio()
   }, [user])
-
-  async function loadProfile() {
-    if (!user) return
-    const data = await getProfile(user.id)
-    if (data) {
-      setProfile(data)
-    } else {
-      setProfile({
-        clerk_id: user.id,
-        full_name: user.fullName || '',
-        avatar_url: user.imageUrl || '',
-      })
-      setEditing(true)
-    }
-  }
-
-  async function loadPortfolio() {
-    if (!user) return
-    const data = await getPortfolio(user.id)
-    setPortfolio(data)
-  }
 
   async function handleSave() {
     if (!user) return
@@ -72,9 +72,11 @@ export default function Profile() {
       <div className="max-w-2xl mx-auto">
 
         <div className="text-center text-white mb-8">
-          <img
+          <Image
             src={user.imageUrl}
             alt="avatar"
+            width={96}
+            height={96}
             className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-white"
           />
           <h1 className="text-3xl font-bold">{profile.full_name || user.fullName}</h1>
@@ -110,8 +112,8 @@ export default function Profile() {
         />
 
         <div className="text-center mt-8 flex justify-center gap-6">
-          <a href="/" className="text-blue-200 hover:text-white underline">Главная</a>
-          <a href="/dashboard" className="text-blue-200 hover:text-white underline">Мои шансы</a>
+          <Link href="/" className="text-blue-200 hover:text-white underline">Главная</Link>
+          <Link href="/dashboard" className="text-blue-200 hover:text-white underline">Мои шансы</Link>
         </div>
 
       </div>

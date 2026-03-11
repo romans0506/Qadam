@@ -9,7 +9,7 @@ export default function Home(){
           Узнай свои шансы на поступление и куда лучше подать документы
         </p>
         <Link
-          href = "/onboarding"
+          href="/dashboard"
           className="bg-white text-blue-900 font-bold px-8 py-4 rounded-full text-lg hover:bg-blue-100 transition"
           >
             Начать анализ →

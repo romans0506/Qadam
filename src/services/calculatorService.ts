@@ -1,4 +1,4 @@
-import { StudentData } from '@/types/student'
+import { UserProfile } from '@/types/student'
 
 export interface Result {
   university: string
@@ -7,9 +7,10 @@ export interface Result {
   color: string
 }
 
-export function calculateChances(data: StudentData): Result[] {
-  const gpa = parseFloat(data.gpa) || 0
-  const ent = parseInt(data.ent_score) || (gpa * 20)
+export function calculateChances(data: Partial<UserProfile>): Result[] {
+  const gpa = data.gpa || 0
+  const ent = data.ent_score || (gpa * 20)
+  const interests = data.interests || []
 
   const specialties = [
     { university: 'Назарбаев Университет', specialty: 'Программная инженерия', required: 100, field: 'IT' },
@@ -21,7 +22,7 @@ export function calculateChances(data: StudentData): Result[] {
   ]
 
   return specialties
-    .filter(s => data.interests.length === 0 || data.interests.includes(s.field))
+    .filter(s => interests.length === 0 || interests.includes(s.field))
     .map(s => {
       const entScore = (ent / s.required) * 60
       const gpaScore = (gpa / 5) * 40
@@ -32,9 +33,9 @@ export function calculateChances(data: StudentData): Result[] {
     .sort((a, b) => b.chance - a.chance)
 }
 
-export function getSmartAnalysis(data: StudentData, results: Result[]): string {
-  const gpa = parseFloat(data.gpa) || 0
-  const ent = parseInt(data.ent_score) || 0
+export function getSmartAnalysis(data: Partial<UserProfile>, results: Result[]): string {
+  const gpa = data.gpa || 0
+  const ent = data.ent_score || 0
   const topResult = results[0]
 
   let analysis = ''

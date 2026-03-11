@@ -1,28 +1,55 @@
 'use client'
+import Link from 'next/link'
+import { useUser } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
-import ScoreCard from '@/components/dashboard/ScoreCard'
+import { getProfile } from '@/services/profileService'
 import { calculateChances, getSmartAnalysis, Result } from '@/services/calculatorService'
-import { StudentData } from '@/types/student'
+import { UserProfile } from '@/types/student'
+import ScoreCard from '@/components/dashboard/ScoreCard'
 
 export default function Dashboard() {
-  const [student, setStudent] = useState<StudentData | null>(null)
+  const { user } = useUser()
   const [results, setResults] = useState<Result[]>([])
   const [analysis, setAnalysis] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<Partial<UserProfile> | null>(null)
 
   useEffect(() => {
-    const saved = localStorage.getItem('studentData')
-    if (saved) {
-      const data = JSON.parse(saved)
-      setStudent(data)
-      const calculated = calculateChances(data)
-      setResults(calculated)
-      setAnalysis(getSmartAnalysis(data, calculated))
-    }
-  }, [])
+    if (!user) return
 
-  if (!student) return (
+    const fetchData = async () => {
+      setLoading(true)
+      const data = await getProfile(user.id)
+      if (data) {
+        setProfile(data)
+        const calculated = calculateChances(data)
+        setResults(calculated)
+        setAnalysis(getSmartAnalysis(data, calculated))
+      }
+      setLoading(false)
+    }
+
+    fetchData()
+  }, [user])
+
+  if (loading) return (
     <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 flex items-center justify-center">
       <p className="text-white text-xl">Загрузка...</p>
+    </main>
+  )
+
+  if (!profile?.gpa) return (
+    <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 flex items-center justify-center">
+      <div className="text-center text-white px-6">
+        <h1 className="text-3xl font-bold mb-4">Сначала заполни профиль! 📝</h1>
+        <p className="text-blue-200 mb-6">Нам нужны твои данные чтобы рассчитать шансы</p>
+        <Link
+          href="/profile"
+          className="bg-white text-blue-900 font-bold px-8 py-4 rounded-full text-lg hover:bg-blue-100 transition"
+        >
+          Заполнить профиль →
+        </Link>
+      </div>
     </main>
   )
 
@@ -32,7 +59,9 @@ export default function Dashboard() {
 
         <div className="text-center text-white mb-8">
           <h1 className="text-4xl font-bold mb-2">Твои шансы 🎯</h1>
-          <p className="text-blue-200">{student.grade} класс • ГПА: {student.gpa} • {student.city}</p>
+          <p className="text-blue-200">
+            {profile.grade} класс • ГПА: {profile.gpa} • {profile.city}
+          </p>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
@@ -46,10 +75,9 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div className="text-center mt-8">
-          <a href="/onboarding" className="text-blue-200 hover:text-white underline">
-            ← Изменить данные
-          </a>
+        <div className="text-center mt-8 flex justify-center gap-6">
+          <Link href="/" className="text-blue-200 hover:text-white underline">Главная</Link>
+          <Link href="/profile" className="text-blue-200 hover:text-white underline">Профиль</Link>
         </div>
 
       </div>
