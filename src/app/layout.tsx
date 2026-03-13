@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Geist, Geist_Mono } from 'next/font/google'
+import Header from '@/components/ui/Header'
 import './globals.css'
 
 const geistSans = Geist({
@@ -14,7 +15,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'EduPath KZ',
+  title: 'Qadam',
   description: 'Платформа для поступления в университеты',
 }
 
@@ -27,6 +28,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="ru">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+          <Header />
           {children}
         </body>
       </html>
