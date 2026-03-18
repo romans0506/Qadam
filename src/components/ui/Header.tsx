@@ -8,11 +8,14 @@ export default function Header() {
   const pathname = usePathname()
   const [email, setEmail] = useState<string | null>(null)
 
-  const links = [
-    { href: '/', label: 'Главная' },
-    { href: '/dashboard', label: 'Шансы' },
-    { href: '/profile', label: 'Профиль' },
-  ]
+const links = [
+  { href: '/', label: 'Главная' },
+  { href: '/universities', label: 'Университеты' },
+  { href: '/tests', label: 'Тесты' },
+  { href: '/calendar', label: 'Календарь' },
+  { href: '/dashboard', label: 'Шансы' },
+  { href: '/profile', label: 'Профиль' },
+]
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
@@ -27,6 +30,7 @@ export default function Header() {
     const supabase = createSupabaseBrowserClient()
     await supabase.auth.signOut()
   }
+
 
   return (
     <header className="bg-blue-950 border-b border-blue-800 px-6 py-4">
