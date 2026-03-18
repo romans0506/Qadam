@@ -4,7 +4,7 @@ import { PortfolioItem } from '@/types/student'
 
 interface Props {
   items: PortfolioItem[]
-  clerkId: string
+  userId: string
   onAdd: (item: Omit<PortfolioItem, 'id' | 'created_at'>) => void
   onDelete: (id: string) => void
 }
@@ -17,7 +17,7 @@ const TYPES = [
   { value: 'extracurricular', label: '⭐ Внеурочная' },
 ]
 
-export default function Portfolio({ items, clerkId, onAdd, onDelete }: Props) {
+export default function Portfolio({ items, userId, onAdd, onDelete }: Props) {
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({
     type: 'olympiad' as PortfolioItem['type'],
@@ -28,7 +28,7 @@ export default function Portfolio({ items, clerkId, onAdd, onDelete }: Props) {
 
   function handleAdd() {
     if (!form.title) return
-    onAdd({ ...form, clerk_id: clerkId })
+    onAdd({ ...form, user_id: userId })
     setForm({ type: 'olympiad', title: '', description: '', year: new Date().getFullYear() })
     setAdding(false)
   }

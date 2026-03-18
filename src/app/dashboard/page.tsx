@@ -1,25 +1,38 @@
 'use client'
 import Link from 'next/link'
-import { useUser } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createSupabaseBrowserClient } from '@/lib/supabase'
 import { getProfile } from '@/services/profileService'
 import { calculateChances, getSmartAnalysis, Result } from '@/services/calculatorService'
 import { UserProfile } from '@/types/student'
 import ScoreCard from '@/components/dashboard/ScoreCard'
 
 export default function Dashboard() {
-  const { user } = useUser()
+  const router = useRouter()
+  const [userId, setUserId] = useState<string | null>(null)
   const [results, setResults] = useState<Result[]>([])
   const [analysis, setAnalysis] = useState('')
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<Partial<UserProfile> | null>(null)
 
   useEffect(() => {
-    if (!user) return
+    const supabase = createSupabaseBrowserClient()
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) {
+        router.push('/login')
+        return
+      }
+      setUserId(data.user.id)
+    })
+  }, [router])
+
+  useEffect(() => {
+    if (!userId) return
 
     const fetchData = async () => {
       setLoading(true)
-      const data = await getProfile(user.id)
+      const data = await getProfile(userId)
       if (data) {
         setProfile(data)
         const calculated = calculateChances(data)
@@ -30,7 +43,7 @@ export default function Dashboard() {
     }
 
     fetchData()
-  }, [user])
+  }, [userId])
 
   if (loading) return (
     <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 flex items-center justify-center">

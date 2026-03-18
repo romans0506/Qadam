@@ -1,49 +1,45 @@
-export interface StudentData {
-  grade: string
-  city: string
-  gpa: string
-  ent_score: string
+export interface UserProfile {
+  user_id: string
+  full_name: string | null
+  nickname: string | null
+  avatar_url: string | null
+  study_country: string | null
+  city: string | null
+  school: string | null
+  grade: number | null
+  gpa: number | null
+  ent_score: number | null
+  sat_score: number | null
+  act_score: number | null
+  ielts_score: number | null
+  toefl_score: number | null
+  languages: string[]
   interests: string[]
-  subjects: {
-    математика: string
-    физика: string
-    химия: string
-    биология: string
-    история: string
-    английский: string
-  }
+  target_country: string | null
+  target_university: string | null
+  target_specialty: string | null
+  bio: string | null
+  created_at: string
+  updated_at: string
 }
 
-export interface UserProfile {
+export interface ProfileSubject {
   id: string
-  clerk_id: string
-  full_name: string
-  nickname: string
-  city: string
-  school: string
-  grade: number
-  avatar_url: string
-  gpa: number
-  ent_score: number
-  sat_score: number
-  act_score: number
-  ielts_score: number
-  toefl_score: number
-  languages: string[]
-  target_country: string
-  target_university: string
-  target_specialty: string
-  interests: string[]
-  bio: string
+  user_id: string
+  subject: string
+  grade: number | null
   created_at: string
 }
 
 export interface PortfolioItem {
   id: string
-  clerk_id: string
+  user_id: string
   type: 'olympiad' | 'certificate' | 'volunteer' | 'leadership' | 'extracurricular'
   title: string
-  description: string
-  year: number
+  description: string | null
+  organization: string | null
+  year: number | null
+  evidence_url: string | null
   created_at: string
+  updated_at: string
 }
