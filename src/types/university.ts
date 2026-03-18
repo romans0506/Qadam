@@ -30,6 +30,7 @@ export interface University {
   city?: City
   rankings?: UniversityRanking[]
   campuses?: Campus[]
+  majors?: UniversityMajor[]
 }
 
 export interface Campus {

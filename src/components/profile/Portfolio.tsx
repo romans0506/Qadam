@@ -28,7 +28,13 @@ export default function Portfolio({ items, userId, onAdd, onDelete }: Props) {
 
   function handleAdd() {
     if (!form.title) return
-    onAdd({ ...form, user_id: userId })
+   onAdd({
+  ...form,
+  user_id: userId,
+  organization: null,
+  evidence_url: null,
+  updated_at: new Date().toISOString(),
+})
     setForm({ type: 'olympiad', title: '', description: '', year: new Date().getFullYear() })
     setAdding(false)
   }

@@ -1,56 +1,59 @@
 'use client'
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { getUniversities } from '@/services/universityService'
-import type { University } from '@/types/university'
+import { University } from '@/types/university'
+import UniversityCard from '@/components/universities/UniversityCard'
+import UniversityFilters from '@/components/universities/UniversityFilters'
+
 export default function UniversitiesPage() {
   const [universities, setUniversities] = useState<University[]>([])
   const [loading, setLoading] = useState(true)
+  const [filters, setFilters] = useState({
+    region: '' as '' | 'kazakhstan' | 'abroad',
+    type: '',
+    has_dormitory: false,
+    has_campus: false,
+  })
+
   useEffect(() => {
-    const fetchData = async () => {
+    async function loadData() {
       setLoading(true)
-      const data = await getUniversities()
+      const data = await getUniversities(
+        filters.region ? { region: filters.region } : undefined
+      )
       setUniversities(data)
       setLoading(false)
     }
-    fetchData()
-  }, [])
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 flex items-center justify-center">
-        <p className="text-white text-xl">Загрузка...</p>
-      </main>
-    )
-  }
+    loadData()
+  }, [filters])
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 p-6">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-6">Университеты</h1>
-        <ul className="space-y-4">
-          {universities.map((uni) => (
-            <li key={uni.id}>
-              <Link
-                href={`/universities/${uni.id}`}
-                className="block bg-white rounded-xl p-4 text-blue-900 hover:bg-blue-50 transition"
-              >
-                <h2 className="font-bold text-lg">{uni.name}</h2>
-                <p className="text-gray-600 text-sm">
-                  {uni.city}, {uni.country}
-                </p>
-                {uni.ranking_position && (
-                  <p className="text-blue-600 text-sm mt-1">
-                    Рейтинг: #{uni.ranking_position} {uni.ranking_source && `(${uni.ranking_source})`}
-                  </p>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-8">
-          <Link href="/" className="text-blue-200 hover:text-white underline">
-            ← Главная
-          </Link>
+      <div className="max-w-5xl mx-auto">
+
+        <div className="text-center text-white mb-8">
+          <h1 className="text-4xl font-bold mb-2">Университеты 🎓</h1>
+          <p className="text-blue-200">Найди свой университет мечты</p>
         </div>
+
+        <UniversityFilters filters={filters} onChange={setFilters} />
+
+        {loading ? (
+          <div className="text-center text-white py-12">
+            <p className="text-xl">Загрузка...</p>
+          </div>
+        ) : universities.length === 0 ? (
+          <div className="text-center text-white py-12">
+            <p className="text-xl">Университеты не найдены</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            {universities.map(uni => (
+              <UniversityCard key={uni.id} university={uni} />
+            ))}
+          </div>
+        )}
+
       </div>
     </main>
   )

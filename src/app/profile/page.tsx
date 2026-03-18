@@ -22,7 +22,7 @@ export default function Profile() {
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
-    supabase.auth.getUser().then(({ data }: { data: { user: { id: string; email?: string | null } | null } }) => {
+    supabase.auth.getUser().then(({ data }) => {
       const u = data.user
       if (!u) {
         router.push('/login')
@@ -36,27 +36,23 @@ export default function Profile() {
   useEffect(() => {
     if (!userId) return
 
-    const loadProfile = async () => {
-      const data = await getProfile(userId)
-      if (data) {
-        setProfile(data)
+    async function loadData() {
+      const [profileData, portfolioData] = await Promise.all([
+        getProfile(userId!),
+        getPortfolio(userId!)
+      ])
+
+      if (profileData) {
+        setProfile(profileData)
       } else {
-        setProfile({
-          user_id: userId,
-          full_name: '',
-          avatar_url: '',
-        })
+        setProfile({ user_id: userId!, full_name: '', avatar_url: '' })
         setEditing(true)
       }
+
+      setPortfolio(portfolioData)
     }
 
-    const loadPortfolio = async () => {
-      const data = await getPortfolio(userId)
-      setPortfolio(data)
-    }
-
-    loadProfile()
-    loadPortfolio()
+    loadData()
   }, [userId])
 
   async function handleSave() {
@@ -67,19 +63,19 @@ export default function Profile() {
     setTimeout(() => setSaved(false), 3000)
   }
 
-  async function handleAddPortfolio(item: Omit<PortfolioItem, 'id' | 'created_at'>) {
+  async function handleAddPortfolio(item: Omit<PortfolioItem, 'id' | 'created_at' | 'updated_at'>) {
     const newItem = await addPortfolioItem(item)
-    if (newItem) setPortfolio([...portfolio, newItem])
+    if (newItem) setPortfolio(prev => [...prev, newItem])
   }
 
   async function handleDeletePortfolio(id: string) {
     await deletePortfolioItem(id)
-    setPortfolio(portfolio.filter(item => item.id !== id))
+    setPortfolio(prev => prev.filter(item => item.id !== id))
   }
 
   if (!userId) return (
     <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 flex items-center justify-center">
-      <p className="text-white">Загрузка...</p>
+      <p className="text-white text-xl">Загрузка...</p>
     </main>
   )
 
@@ -93,10 +89,13 @@ export default function Profile() {
             alt="avatar"
             width={96}
             height={96}
-            className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-white"
+            className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-white object-cover"
           />
           <h1 className="text-3xl font-bold">{profile.full_name || userEmail || 'Профиль'}</h1>
           <p className="text-blue-200">@{profile.nickname || 'nickname'}</p>
+          {profile.school && (
+            <p className="text-blue-300 text-sm mt-1">{profile.school} • {profile.grade} класс</p>
+          )}
         </div>
 
         <ProfileForm
