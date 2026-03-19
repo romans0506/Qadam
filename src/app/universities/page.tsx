@@ -16,16 +16,19 @@ export default function UniversitiesPage() {
   })
 
   useEffect(() => {
-    async function loadData() {
-      setLoading(true)
-      const data = await getUniversities(
-        filters.region ? { region: filters.region } : undefined
-      )
-      setUniversities(data)
-      setLoading(false)
-    }
-    loadData()
-  }, [filters])
+  async function loadData() {
+    setLoading(true)
+    const data = await getUniversities({
+      region: filters.region || undefined,
+      type: filters.type || undefined,
+      has_dormitory: filters.has_dormitory || undefined,
+      has_campus: filters.has_campus || undefined,
+    })
+    setUniversities(data)
+    setLoading(false)
+  }
+  loadData()
+}, [filters])
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 p-6">

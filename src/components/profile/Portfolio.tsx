@@ -11,6 +11,7 @@ interface Props {
 
 const TYPES = [
   { value: 'olympiad', label: '🏆 Олимпиада' },
+  { value: 'competition', label: '🥇 Конкурс' },
   { value: 'certificate', label: '📜 Сертификат' },
   { value: 'volunteer', label: '🤝 Волонтёрство' },
   { value: 'leadership', label: '👑 Лидерство' },
@@ -23,6 +24,7 @@ export default function Portfolio({ items, userId, onAdd, onDelete }: Props) {
     type: 'olympiad' as PortfolioItem['type'],
     title: '',
     description: '',
+    organization: '',
     year: new Date().getFullYear(),
   })
 
@@ -35,7 +37,7 @@ export default function Portfolio({ items, userId, onAdd, onDelete }: Props) {
   evidence_url: null,
   updated_at: new Date().toISOString(),
 })
-    setForm({ type: 'olympiad', title: '', description: '', year: new Date().getFullYear() })
+    setForm({ type: 'olympiad', title: '', description: '',organization: '', year: new Date().getFullYear() })
     setAdding(false)
   }
 
@@ -82,6 +84,12 @@ export default function Portfolio({ items, userId, onAdd, onDelete }: Props) {
             min={2000} max={2030}
             value={form.year}
             onChange={e => setForm({ ...form, year: parseInt(e.target.value) })}
+          />
+          <input
+            className="w-full border rounded-lg p-2 text-gray-800"
+            placeholder="Организация (необязательно)"
+            value={form.organization || ''}
+            onChange={e => setForm({ ...form, organization: e.target.value })}
           />
           <button
             onClick={handleAdd}

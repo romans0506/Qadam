@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getUniversityById } from '@/services/universityService'
+import SaveUniversityButton from '@/components/universities/SaveUniversityButton'
 
 type PageProps = {
   params: Promise<{ id: string }>
@@ -24,7 +25,6 @@ export default async function UniversityDetailPage({ params }: PageProps) {
     <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 p-6">
       <div className="max-w-3xl mx-auto">
 
-        {/* Заголовок */}
         <div className="bg-white rounded-2xl p-6 shadow-lg mb-4">
           <div className="flex items-start justify-between mb-4">
             <div>
@@ -33,7 +33,7 @@ export default async function UniversityDetailPage({ params }: PageProps) {
                 {university.country?.flag_icon} {university.city?.name}, {university.country?.name}
               </p>
             </div>
-            {university.rankings && university.rankings[0] && (
+            {university.rankings?.[0] && (
               <div className="bg-blue-50 text-blue-700 font-bold px-4 py-2 rounded-full">
                 #{university.rankings[0].position} QS
               </div>
@@ -41,10 +41,10 @@ export default async function UniversityDetailPage({ params }: PageProps) {
           </div>
 
           {university.description_full && (
-            <p className="text-gray-600 leading-relaxed">{university.description_full}</p>
+            <p className="text-gray-600 leading-relaxed mb-4">{university.description_full}</p>
           )}
 
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 mb-4">
             {university.type && (
               <span className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">
                 {university.type === 'national' ? 'Национальный' :
@@ -53,14 +53,10 @@ export default async function UniversityDetailPage({ params }: PageProps) {
               </span>
             )}
             {university.has_dormitory && (
-              <span className="bg-green-50 text-green-700 text-sm px-3 py-1 rounded-full">
-                🏠 Общежитие
-              </span>
+              <span className="bg-green-50 text-green-700 text-sm px-3 py-1 rounded-full">🏠 Общежитие</span>
             )}
             {university.has_campus && (
-              <span className="bg-blue-50 text-blue-700 text-sm px-3 py-1 rounded-full">
-                🏛️ Кампус
-              </span>
+              <span className="bg-blue-50 text-blue-700 text-sm px-3 py-1 rounded-full">🏛️ Кампус</span>
             )}
             {university.website_url && (
               <a
@@ -73,33 +69,69 @@ export default async function UniversityDetailPage({ params }: PageProps) {
               </a>
             )}
           </div>
+
+          {/* Кнопка сохранить */}
+          <SaveUniversityButton universityId={university.id} universityName={university.name} />
         </div>
 
-        {/* Специальности */}
+        {/* Требования к поступлению */}
         {university.majors && university.majors.length > 0 && (
           <div className="bg-white rounded-2xl p-6 shadow-lg mb-4">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">📚 Специальности</h2>
-            <div className="space-y-3">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">📋 Требования к поступлению</h2>
+            <div className="space-y-4">
               {university.majors.map(um => (
                 <div key={um.id} className="border rounded-xl p-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-gray-800">{um.major?.name}</h3>
-                    <span className="text-sm text-gray-500">{um.degree_level}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-bold text-gray-800">{um.major?.name}</h3>
+                    <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                      {um.degree_level}
+                    </span>
                   </div>
-                  <div className="flex gap-4 mt-2 text-sm text-gray-500">
+
+                  <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-3">
                     {um.required_ent && (
-                      <span>ЕНТ: {um.required_ent}+</span>
+                      <div className="flex items-center gap-1">
+                        <span>📝</span> ЕНТ: {um.required_ent}+
+                      </div>
                     )}
                     {um.required_gpa && (
-                      <span>GPA: {um.required_gpa}+</span>
+                      <div className="flex items-center gap-1">
+                        <span>📊</span> GPA: {um.required_gpa}+
+                      </div>
                     )}
                     {um.budget_places && (
-                      <span>Грант: {um.budget_places} мест</span>
+                      <div className="flex items-center gap-1">
+                        <span>🎓</span> Грант: {um.budget_places} мест
+                      </div>
                     )}
                     {um.paid_places && (
-                      <span>Платно: {um.paid_places} мест</span>
+                      <div className="flex items-center gap-1">
+                        <span>💳</span> Платно: {um.paid_places} мест
+                      </div>
                     )}
                   </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {um.required_exams?.map(exam => (
+                      <span key={exam} className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full">
+                        {exam}
+                      </span>
+                    ))}
+                    {um.requires_essay && (
+                      <span className="bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded-full">
+                        ✍️ Эссе
+                      </span>
+                    )}
+                    {um.requires_recommendation && (
+                      <span className="bg-orange-50 text-orange-700 text-xs px-2 py-1 rounded-full">
+                        📄 Рекомендательное письмо
+                      </span>
+                    )}
+                  </div>
+
+                  {um.notes && (
+                    <p className="text-gray-500 text-sm mt-2 italic">{um.notes}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -116,9 +148,7 @@ export default async function UniversityDetailPage({ params }: PageProps) {
                   <span className="text-2xl">{campus.country?.flag_icon}</span>
                   <div>
                     <p className="font-medium text-gray-800">{campus.country?.name}</p>
-                    {campus.address && (
-                      <p className="text-sm text-gray-500">{campus.address}</p>
-                    )}
+                    {campus.address && <p className="text-sm text-gray-500">{campus.address}</p>}
                   </div>
                   {campus.is_main && (
                     <span className="ml-auto text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">

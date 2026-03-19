@@ -56,12 +56,17 @@ export default function Profile() {
   }, [userId])
 
   async function handleSave() {
-    if (!userId) return
-    await saveProfile({ ...profile, user_id: userId })
-    setSaved(true)
-    setEditing(false)
-    setTimeout(() => setSaved(false), 3000)
-  }
+  if (!userId) return
+  await saveProfile({ ...profile, user_id: userId })
+
+  // Автоматически генерируем события в календаре
+  const { generateCalendarFromProfile } = await import('@/services/calendarService')
+  await generateCalendarFromProfile(userId)
+
+  setSaved(true)
+  setEditing(false)
+  setTimeout(() => setSaved(false), 3000)
+}
 
   async function handleAddPortfolio(item: Omit<PortfolioItem, 'id' | 'created_at' | 'updated_at'>) {
     const newItem = await addPortfolioItem(item)

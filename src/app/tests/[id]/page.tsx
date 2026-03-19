@@ -57,17 +57,17 @@ export default function TestPage({ params }: { params: Promise<{ id: string }> }
 
   setQuestions(questionsData ?? [])
 
-  // Проверяем есть ли уже сессия
-  const { data: existingSession } = await supabase
+  // Ищем существующую сессию
+  const { data: existingSessions } = await supabase
     .from('user_test_sessions')
     .select('*')
-    .eq('user_id', userId)
-    .eq('test_id', testId)
+    .eq('user_id', userId!)
+    .eq('test_id', testId!)
     .eq('status', 'in_progress')
-    .single()
+    .limit(1)
 
-  if (existingSession) {
-    setSessionId(existingSession.id)
+  if (existingSessions && existingSessions.length > 0) {
+    setSessionId(existingSessions[0].id)
   } else {
     const { data: newSession } = await supabase
       .from('user_test_sessions')

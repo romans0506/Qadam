@@ -19,6 +19,8 @@ export interface UserProfile {
   target_university: string | null
   target_specialty: string | null
   bio: string | null
+  status: string | null
+  personality_type: string | null
   created_at: string
   updated_at: string
 }
@@ -34,7 +36,7 @@ export interface ProfileSubject {
 export interface PortfolioItem {
   id: string
   user_id: string
-  type: 'olympiad' | 'certificate' | 'volunteer' | 'leadership' | 'extracurricular'
+  type: 'olympiad' | 'certificate' | 'volunteer' | 'leadership' | 'extracurricular' | 'competition'
   title: string
   description: string | null
   organization: string | null

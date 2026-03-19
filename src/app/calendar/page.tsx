@@ -8,7 +8,7 @@ interface CalendarEvent {
   title: string
   description: string | null
   start_date: string
-  type: string | null
+  source_type: string | null
   is_auto_generated: boolean
   is_done: boolean
 }
@@ -19,7 +19,13 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ title: '', description: '', start_date: '', type: 'deadline' })
+  const [filter, setFilter] = useState<'all' | 'auto' | 'manual'>('all')
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    start_date: '',
+    type: 'deadline'
+  })
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
@@ -48,14 +54,21 @@ export default function CalendarPage() {
   async function addEvent() {
     if (!userId || !form.title || !form.start_date) return
     const supabase = createSupabaseBrowserClient()
-    await supabase.from('user_calendar_events').insert({
-      user_id: userId,
-      title: form.title,
-      description: form.description || null,
-      start_date: form.start_date,
-      type: form.type,
-      is_auto_generated: false,
-    })
+
+    const { error } = await supabase
+      .from('user_calendar_events')
+      .insert({
+        user_id: userId,
+        title: form.title,
+        description: form.description || null,
+        start_date: new Date(form.start_date).toISOString(),
+        source_type: form.type,
+        is_auto_generated: false,
+        is_done: false,
+      })
+
+    if (error) { console.error('Ошибка:', error); return }
+
     setForm({ title: '', description: '', start_date: '', type: 'deadline' })
     setShowForm(false)
     loadEvents()
@@ -73,18 +86,29 @@ export default function CalendarPage() {
     setEvents(events.filter(e => e.id !== id))
   }
 
-  const typeColors: Record<string, string> = {
+  // Группируем события по месяцам
+  const filteredEvents = events.filter(e => {
+    if (filter === 'auto') return e.is_auto_generated
+    if (filter === 'manual') return !e.is_auto_generated
+    return true
+  })
+
+  const groupedEvents = filteredEvents.reduce((groups, event) => {
+    const month = new Date(event.start_date).toLocaleDateString('ru-RU', {
+      month: 'long', year: 'numeric'
+    })
+    if (!groups[month]) groups[month] = []
+    groups[month].push(event)
+    return groups
+  }, {} as Record<string, CalendarEvent[]>)
+
+  const sourceColors: Record<string, string> = {
+    university_deadline: 'bg-red-50 text-red-700',
+    profile_goal: 'bg-blue-50 text-blue-700',
     deadline: 'bg-red-50 text-red-700',
     exam: 'bg-purple-50 text-purple-700',
-    event: 'bg-blue-50 text-blue-700',
+    event: 'bg-green-50 text-green-700',
     reminder: 'bg-yellow-50 text-yellow-700',
-  }
-
-  const typeLabels: Record<string, string> = {
-    deadline: '📅 Дедлайн',
-    exam: '📝 Экзамен',
-    event: '🎯 Событие',
-    reminder: '🔔 Напоминание',
   }
 
   if (loading) return (
@@ -99,7 +123,30 @@ export default function CalendarPage() {
 
         <div className="text-center text-white mb-8">
           <h1 className="text-4xl font-bold mb-2">Календарь 📅</h1>
-          <p className="text-blue-200">Дедлайны, экзамены и события</p>
+          <p className="text-blue-200">
+            {events.filter(e => !e.is_done).length} предстоящих событий
+          </p>
+        </div>
+
+        {/* Фильтры */}
+        <div className="flex gap-2 mb-4">
+          {[
+            { value: 'all', label: '🌍 Все' },
+            { value: 'auto', label: '🤖 Авто' },
+            { value: 'manual', label: '✏️ Мои' },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setFilter(opt.value as typeof filter)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                filter === opt.value
+                  ? 'bg-white text-blue-900'
+                  : 'bg-blue-800 text-blue-200 hover:bg-blue-700'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
         <button
@@ -150,53 +197,67 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {events.length === 0 ? (
+        {filteredEvents.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center text-gray-500">
-            <p className="text-lg">Нет событий</p>
-            <p className="text-sm mt-1">Добавь дедлайны и экзамены!</p>
+            <p className="text-lg mb-2">Нет событий</p>
+            <p className="text-sm">Сохрани университет или заполни профиль — события появятся автоматически!</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {events.map(event => (
-              <div
-                key={event.id}
-                className={`bg-white rounded-2xl p-4 shadow-lg ${event.is_done ? 'opacity-60' : ''}`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={event.is_done}
-                      onChange={() => toggleDone(event.id, event.is_done)}
-                      className="w-5 h-5 mt-1 cursor-pointer"
-                    />
-                    <div>
-                      <p className={`font-bold text-gray-800 ${event.is_done ? 'line-through' : ''}`}>
-                        {event.title}
-                      </p>
-                      {event.description && (
-                        <p className="text-gray-500 text-sm">{event.description}</p>
-                      )}
-                      <div className="flex gap-2 mt-2">
-                        <span className="text-xs text-gray-400">
-                          {new Date(event.start_date).toLocaleDateString('ru-RU', {
-                            day: 'numeric', month: 'long', year: 'numeric'
-                          })}
-                        </span>
-                        {event.type && (
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${typeColors[event.type] || 'bg-gray-100 text-gray-600'}`}>
-                            {typeLabels[event.type] || event.type}
-                          </span>
-                        )}
+          <div className="space-y-6">
+            {Object.entries(groupedEvents).map(([month, monthEvents]) => (
+              <div key={month}>
+                <h2 className="text-white font-bold text-lg mb-3 capitalize">{month}</h2>
+                <div className="space-y-3">
+                  {monthEvents.map(event => (
+                    <div
+                      key={event.id}
+                      className={`bg-white rounded-2xl p-4 shadow-lg ${event.is_done ? 'opacity-60' : ''}`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={event.is_done}
+                            onChange={() => toggleDone(event.id, event.is_done)}
+                            className="w-5 h-5 mt-1 cursor-pointer"
+                          />
+                          <div>
+                            <p className={`font-bold text-gray-800 ${event.is_done ? 'line-through' : ''}`}>
+                              {event.title}
+                            </p>
+                            {event.description && (
+                              <p className="text-gray-500 text-sm mt-1">{event.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              <span className="text-xs text-gray-400">
+                                {new Date(event.start_date).toLocaleDateString('ru-RU', {
+                                  day: 'numeric', month: 'long'
+                                })}
+                              </span>
+                              {event.source_type && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${sourceColors[event.source_type] || 'bg-gray-100 text-gray-600'}`}>
+                                  {event.source_type === 'university_deadline' ? '🏛️ Универ' :
+                                   event.source_type === 'profile_goal' ? '🎯 Цель' :
+                                   event.source_type}
+                                </span>
+                              )}
+                              {event.is_auto_generated && (
+                                <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
+                                  🤖 Авто
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteEvent(event.id)}
+                          className="text-gray-300 hover:text-red-500 transition ml-2 flex-shrink-0"
+                        >
+                          ✕
+                        </button>
                       </div>
                     </div>
-                  </div>
-                  <button
-                    onClick={() => deleteEvent(event.id)}
-                    className="text-gray-300 hover:text-red-500 transition ml-2"
-                  >
-                    ✕
-                  </button>
+                  ))}
                 </div>
               </div>
             ))}

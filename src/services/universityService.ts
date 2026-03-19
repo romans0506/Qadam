@@ -2,7 +2,6 @@ import { createSupabaseBrowserClient } from '@/lib/supabase'
 import { University, SavedUniversity, Country } from '@/types/university'
 
 export async function getUniversities(filters?: {
-  country_id?: string
   region?: 'kazakhstan' | 'abroad'
   type?: string
   has_dormitory?: boolean
@@ -26,14 +25,20 @@ export async function getUniversities(filters?: {
       )
     `)
 
-  if (filters?.country_id) query = query.eq('main_country_id', filters.country_id)
   if (filters?.type) query = query.eq('type', filters.type)
   if (filters?.has_dormitory) query = query.eq('has_dormitory', true)
   if (filters?.has_campus) query = query.eq('has_campus', true)
 
   const { data, error } = await query
   if (error) return []
-  return data ?? []
+
+  // Фильтруем по региону на стороне клиента
+  let result = data ?? []
+  if (filters?.region) {
+    result = result.filter(u => u.country?.region === filters.region)
+  }
+
+  return result
 }
 
 export async function getUniversityById(id: string): Promise<University | null> {
