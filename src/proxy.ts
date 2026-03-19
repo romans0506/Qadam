@@ -1,45 +1,36 @@
 import { createServerClient } from '@supabase/ssr'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
-const PROTECTED_PREFIXES = ['/dashboard', '/profile']
-
-function isProtectedRoute(req: NextRequest) {
-  const pathname = req.nextUrl.pathname
-  return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
-}
-
-export default async function middleware(req: NextRequest) {
-  let res = NextResponse.next()
+export async function proxy(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return req.cookies.getAll()
-        },
-        setAll(cookies) {
-          cookies.forEach(({ name, value, options }) => req.cookies.set(name, value))
-          res = NextResponse.next({ request: req })
-          cookies.forEach(({ name, value, options }) => res.cookies.set(name, value, options))
+        getAll() { return request.cookies.getAll() },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
         },
       },
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (isProtectedRoute(req) && !user) {
-    const url = req.nextUrl.clone()
-    url.pathname = '/login'
-    url.searchParams.set('redirectedFrom', req.nextUrl.pathname)
-    return NextResponse.redirect(url)
+  const protectedRoutes = ['/dashboard', '/profile', '/assistant', '/calendar', '/tests']
+  const isProtected = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route))
+
+  if (isProtected && !user) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  return res
+  return supabaseResponse
 }
 
 export const config = {

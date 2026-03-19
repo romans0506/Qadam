@@ -1,35 +1,53 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   const { profile } = await req.json()
 
   try {
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 300,
-      messages: [{
-        role: 'user',
-        content: `Напиши короткую биографию (3-4 предложения) для казахстанского школьника для образовательного профиля на сайте Qadam. На русском языке, от первого лица, дружелюбно и профессионально.
+    const apiKey = process.env.NVIDIA_API_KEY
+    if (!apiKey) {
+      return NextResponse.json(
+        { bio: null, message: 'NVIDIA_API_KEY is not set in environment variables' },
+        { status: 500 }
+      )
+    }
 
-Данные:
-- Имя: ${profile.full_name || 'не указано'}
-- Класс: ${profile.grade || 'не указан'}
-- Город: ${profile.city || 'не указан'}
-- Школа: ${profile.school || 'не указана'}
-- GPA: ${profile.gpa || 'не указан'}
-- Интересы: ${profile.interests?.join(', ') || 'не указаны'}
-- Цель: поступить в ${profile.target_university || 'университет'} на ${profile.target_specialty || 'специальность'}
-- Языки: ${profile.languages?.join(', ') || 'не указаны'}
-
-Напиши только биографию, без лишних слов.`
-      }]
+  const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        // Попробуй именно этот вариант ID, он самый стабильный для 3.1 8b
+        model: 'meta/llama-3.1-8b-instruct', 
+        messages: [{
+          role: 'user',
+          content: `Напиши биографию для: ${profile.full_name}, ${profile.grade} класс, г. ${profile.city}.`
+        }],
+        temperature: 0.2, // Поставим поменьше для теста
+        top_p: 0.7,
+        max_tokens: 1024,
+      })
     })
 
-    const bio = message.content[0].type === 'text' ? message.content[0].text : ''
+    // Если NVIDIA вернула ошибку (404, 401 и т.д.)
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`NVIDIA API Error (${response.status}):`, errorText);
+      return NextResponse.json({ bio: null, error: errorText }, { status: response.status });
+    }
+
+    const raw = await response.text()
+    let data: any
+    try {
+      data = JSON.parse(raw)
+    } catch {
+      return NextResponse.json({ bio: null, error: raw }, { status: 500 })
+    }
+    const bio = data.choices?.[0]?.message?.content || null
     return NextResponse.json({ bio })
+
   } catch {
     return NextResponse.json({ bio: null }, { status: 500 })
   }

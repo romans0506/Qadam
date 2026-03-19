@@ -14,7 +14,7 @@ export default function AIBioGenerator({ profile, onGenerated }: Props) {
   async function generateBio() {
     setLoading(true)
     try {
-      const res = await fetch('/api/generate-bio', {
+      const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profile }),

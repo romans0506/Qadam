@@ -13,6 +13,7 @@ const links = [
   { href: '/universities', label: 'Университеты' },
   { href: '/tests', label: 'Тесты' },
   { href: '/calendar', label: 'Календарь' },
+  { href: '/assistant', label: '🤖 AI' },
   { href: '/dashboard', label: 'Шансы' },
   { href: '/profile', label: 'Профиль' },
 ]

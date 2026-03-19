@@ -48,6 +48,27 @@ export default function TestsPage() {
     setLoading(false)
   }
 
+  async function retakeTest(testId: string) {
+    const supabase = createSupabaseBrowserClient()
+
+    // Удаляем старые данные
+    const { data: oldSessions } = await supabase
+      .from('user_test_sessions')
+      .select('id')
+      .eq('user_id', userId!)
+      .eq('test_id', testId)
+
+    if (oldSessions && oldSessions.length > 0) {
+      const sessionIds = oldSessions.map(s => s.id)
+      await supabase.from('user_test_answers').delete().in('session_id', sessionIds)
+      await supabase.from('user_test_results').delete().in('session_id', sessionIds)
+      await supabase.from('user_test_sessions').delete().eq('user_id', userId!).eq('test_id', testId)
+    }
+
+    await loadData()
+    router.push(`/tests/${testId}`)
+  }
+
   function getTestStatus(testId: string) {
     const session = sessions.find(s => s.test_id === testId)
     return session?.status ?? null
@@ -77,7 +98,6 @@ export default function TestsPage() {
         {tests.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center text-gray-500">
             <p className="text-lg">Тесты скоро появятся!</p>
-            <p className="text-sm mt-1">Мы готовим профориентационные тесты</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -106,11 +126,19 @@ export default function TestsPage() {
                         )}
                       </div>
                     </div>
-                    <div>
+                    <div className="flex flex-col gap-2 items-end">
                       {status === 'completed' ? (
-                        <span className="bg-green-50 text-green-700 text-sm px-3 py-1 rounded-full">
-                          Пройден ✓
-                        </span>
+                        <>
+                          <span className="bg-green-50 text-green-700 text-sm px-3 py-1 rounded-full">
+                            Пройден ✓
+                          </span>
+                          <button
+                            onClick={() => retakeTest(test.id)}
+                            className="text-blue-500 text-xs hover:underline"
+                          >
+                            🔄 Пройти заново
+                          </button>
+                        </>
                       ) : unlocked ? (
                         <button
                           onClick={() => router.push(`/tests/${test.id}`)}

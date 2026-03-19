@@ -6,10 +6,15 @@ export async function generateCalendarFromUniversity(
 ): Promise<boolean> {
   const supabase = createSupabaseBrowserClient()
 
-  const { data: deadlines } = await supabase
+  const { data: deadlines, error: deadlinesError } = await supabase
     .from('university_deadlines')
     .select('*, university:universities(name)')
     .eq('university_id', universityId)
+
+  if (deadlinesError) {
+    console.error('generateCalendarFromUniversity: failed to load deadlines:', deadlinesError)
+    return false
+  }
 
   if (!deadlines || deadlines.length === 0) return false
 
@@ -23,7 +28,7 @@ export async function generateCalendarFromUniversity(
 
     if (existing && existing.length > 0) continue
 
-    await supabase.from('user_calendar_events').insert({
+    const { error: insertError } = await supabase.from('user_calendar_events').insert({
       user_id: userId,
       source_type: 'university_deadline',
       source_id: d.id,
@@ -38,6 +43,11 @@ export async function generateCalendarFromUniversity(
       is_auto_generated: true,
       is_done: false,
     })
+
+    if (insertError) {
+      console.error('generateCalendarFromUniversity insert error:', insertError)
+      return false
+    }
   }
 
   return true
@@ -47,11 +57,16 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
   const supabase = createSupabaseBrowserClient()
 
   // Получаем профиль пользователя
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('target_university, target_country, target_specialty, ent_score, ielts_score, sat_score')
     .eq('user_id', userId)
     .single()
+
+  if (profileError) {
+    console.error('generateCalendarFromProfile: failed to load profile:', profileError)
+    return false
+  }
 
   if (!profile) return false
 
@@ -171,7 +186,11 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
       .limit(1)
 
     if (existing && existing.length > 0) continue
-    await supabase.from('user_calendar_events').insert(event)
+    const { error: insertError } = await supabase.from('user_calendar_events').insert(event)
+    if (insertError) {
+      console.error('generateCalendarFromProfile insert error:', insertError)
+      return false
+    }
   }
 
   return true
