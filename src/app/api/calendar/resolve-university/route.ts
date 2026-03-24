@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rateLimit'
 
 type Candidate = { id: string; name: string; description_short?: string | null }
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req)
+  const { allowed, remaining, resetIn } = rateLimit(`resolve-uni:${ip}`, 30, 60_000)
+
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `Слишком много запросов. Попробуй через ${Math.ceil(resetIn / 1000)} сек.` },
+      { status: 429 }
+    )
+  }
+
   const { query, candidates } = (await req.json()) as {
     query: string
     candidates: Candidate[]
@@ -38,7 +49,7 @@ ${(candidates || [])
 
   try {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 20000)
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
 
     const response = await fetch(
       'https://integrate.api.nvidia.com/v1/chat/completions',

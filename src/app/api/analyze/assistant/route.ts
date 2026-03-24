@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req)
+  const { allowed, remaining, resetIn } = rateLimit(`assistant:${ip}`, 20, 60_000)
+
+  if (!allowed) {
+    return NextResponse.json(
+      { message: `Слишком много запросов. Попробуй через ${Math.ceil(resetIn / 1000)} сек.` },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil(resetIn / 1000)), 'X-RateLimit-Remaining': '0' },
+      }
+    )
+  }
+
   const { messages, profile, portfolio, isInitial } = await req.json()
 
   const profileSummary = `
@@ -32,7 +46,7 @@ ${profileSummary}
     }
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 25000)
+    const timeoutId = setTimeout(() => controller.abort(), 45000)
     const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -81,10 +95,11 @@ ${profileSummary}
     const message = data.choices?.[0]?.message?.content || 'Не удалось получить ответ'
     return NextResponse.json({ message })
 
-  } catch (error) {
+  } catch (error: any) {
+    const isTimeout = error?.name === 'AbortError'
     console.error('AI error:', error)
     return NextResponse.json(
-      { message: 'AI временно недоступен. Попробуй позже.' },
+      { message: isTimeout ? 'AI не ответил вовремя. Попробуй ещё раз.' : 'AI временно недоступен. Попробуй позже.' },
       { status: 500 }
     )
   }

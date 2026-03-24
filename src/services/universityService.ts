@@ -6,8 +6,13 @@ export async function getUniversities(filters?: {
   type?: string
   has_dormitory?: boolean
   has_campus?: boolean
+  limit?: number
+  offset?: number
 }): Promise<University[]> {
   const supabase = createSupabaseBrowserClient()
+
+  const pageSize = filters?.limit ?? 20
+  const pageOffset = filters?.offset ?? 0
 
   let query = supabase
     .from('universities')
@@ -24,6 +29,7 @@ export async function getUniversities(filters?: {
         country:countries(flag_icon, name)
       )
     `)
+    .range(pageOffset, pageOffset + pageSize - 1)
 
   if (filters?.type) query = query.eq('type', filters.type)
   if (filters?.has_dormitory) query = query.eq('has_dormitory', true)

@@ -5,12 +5,13 @@ interface Props {
   profile: Partial<UserProfile>
   editing: boolean
   saved: boolean
+  saving?: boolean
   onEdit: () => void
   onSave: () => void
   onChange: (profile: Partial<UserProfile>) => void
 }
 
-export default function ProfileForm({ profile, editing, saved, onEdit, onSave, onChange }: Props) {
+export default function ProfileForm({ profile, editing, saved, saving, onEdit, onSave, onChange }: Props) {
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg">
       <div className="flex justify-between items-center mb-6">
@@ -92,9 +93,10 @@ export default function ProfileForm({ profile, editing, saved, onEdit, onSave, o
       {editing && (
         <button
           onClick={onSave}
-          className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition mt-6"
+          disabled={saving}
+          className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition mt-6 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Сохранить
+          {saving ? 'Сохранение...' : 'Сохранить'}
         </button>
       )}
 
