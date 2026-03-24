@@ -3,6 +3,7 @@ import { University, SavedUniversity, Country } from '@/types/university'
 
 export async function getUniversities(filters?: {
   region?: 'kazakhstan' | 'abroad'
+  country_id?: string
   type?: string
   has_dormitory?: boolean
   has_campus?: boolean
@@ -34,13 +35,14 @@ export async function getUniversities(filters?: {
   if (filters?.type) query = query.eq('type', filters.type)
   if (filters?.has_dormitory) query = query.eq('has_dormitory', true)
   if (filters?.has_campus) query = query.eq('has_campus', true)
+  if (filters?.country_id) query = query.eq('main_country_id', filters.country_id)
 
   const { data, error } = await query
   if (error) return []
 
-  // Фильтруем по региону на стороне клиента
+  // Фильтруем по региону на стороне клиента (когда не выбрана конкретная страна)
   let result = data ?? []
-  if (filters?.region) {
+  if (filters?.region && !filters?.country_id) {
     result = result.filter(u => u.country?.region === filters.region)
   }
 

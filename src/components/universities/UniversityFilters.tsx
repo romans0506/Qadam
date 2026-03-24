@@ -1,7 +1,9 @@
 'use client'
+import { Country } from '@/types/university'
 
 interface Filters {
   region: '' | 'kazakhstan' | 'abroad'
+  country_id: string
   type: string
   has_dormitory: boolean
   has_campus: boolean
@@ -9,14 +11,20 @@ interface Filters {
 
 interface Props {
   filters: Filters
+  countries: Country[]
   onChange: (filters: Filters) => void
 }
 
-export default function UniversityFilters({ filters, onChange }: Props) {
+export default function UniversityFilters({ filters, countries, onChange }: Props) {
+  const filteredCountries = countries.filter(c =>
+    !filters.region || c.region === filters.region
+  )
+
   return (
     <div className="bg-white rounded-2xl p-4 shadow-lg">
       <div className="flex flex-wrap gap-3 items-center">
 
+        {/* Регион */}
         <div className="flex gap-2">
           {[
             { value: '', label: '🌍 Все' },
@@ -25,7 +33,7 @@ export default function UniversityFilters({ filters, onChange }: Props) {
           ].map(opt => (
             <button
               key={opt.value}
-              onClick={() => onChange({ ...filters, region: opt.value as Filters['region'] })}
+              onClick={() => onChange({ ...filters, region: opt.value as Filters['region'], country_id: '' })}
               className={`px-4 py-2 rounded-full text-sm font-medium transition ${
                 filters.region === opt.value
                   ? 'bg-blue-600 text-white'
@@ -37,6 +45,23 @@ export default function UniversityFilters({ filters, onChange }: Props) {
           ))}
         </div>
 
+        {/* Страна */}
+        {filteredCountries.length > 0 && (
+          <select
+            className="border rounded-full px-4 py-2 text-sm text-gray-700"
+            value={filters.country_id}
+            onChange={e => onChange({ ...filters, country_id: e.target.value })}
+          >
+            <option value="">Все страны</option>
+            {filteredCountries.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.flag_icon} {c.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* Тип */}
         <select
           className="border rounded-full px-4 py-2 text-sm text-gray-700"
           value={filters.type}

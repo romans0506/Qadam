@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { getUniversities } from '@/services/universityService'
-import { University } from '@/types/university'
+import { getUniversities, getCountries } from '@/services/universityService'
+import { University, Country } from '@/types/university'
 import UniversityCard from '@/components/universities/UniversityCard'
 import UniversityFilters from '@/components/universities/UniversityFilters'
 
@@ -9,6 +9,7 @@ const PAGE_SIZE = 20
 
 export default function UniversitiesPage() {
   const [universities, setUniversities] = useState<University[]>([])
+  const [countries, setCountries] = useState<Country[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -16,10 +17,15 @@ export default function UniversitiesPage() {
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState({
     region: '' as '' | 'kazakhstan' | 'abroad',
+    country_id: '',
     type: '',
     has_dormitory: false,
     has_campus: false,
   })
+
+  useEffect(() => {
+    getCountries().then(setCountries)
+  }, [])
 
   const loadUniversities = useCallback(async (newOffset: number, replace: boolean) => {
     if (replace) setLoading(true)
@@ -27,6 +33,7 @@ export default function UniversitiesPage() {
 
     const data = await getUniversities({
       region: filters.region || undefined,
+      country_id: filters.country_id || undefined,
       type: filters.type || undefined,
       has_dormitory: filters.has_dormitory || undefined,
       has_campus: filters.has_campus || undefined,
@@ -51,7 +58,6 @@ export default function UniversitiesPage() {
     loadUniversities(0, true)
   }, [filters]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Фильтрация по поиску на клиенте
   const filtered = universities.filter(u =>
     u.name.toLowerCase().includes(search.toLowerCase()) ||
     u.city?.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -60,27 +66,27 @@ export default function UniversitiesPage() {
   )
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 p-6">
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 p-6">
       <div className="max-w-5xl mx-auto">
 
         <div className="text-center text-white mb-8">
-          <h1 className="text-4xl font-bold mb-2">Университеты 🎓</h1>
-          <p className="text-blue-200">Найди свой университет мечты</p>
+          <h1 className="text-4xl font-bold mb-2">Университеты</h1>
+          <p className="text-blue-300">Найди свой университет мечты</p>
         </div>
 
         {/* Поиск */}
         <div className="relative mb-4">
           <input
             type="text"
-            placeholder="🔍 Поиск по названию, городу, стране..."
-            className="w-full bg-white rounded-2xl px-5 py-4 text-gray-800 text-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Поиск по названию, городу, стране..."
+            className="w-full bg-white/10 backdrop-blur border border-white/20 rounded-2xl px-5 py-4 text-white placeholder-white/40 text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xl"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-xl"
             >
               ✕
             </button>
@@ -88,26 +94,30 @@ export default function UniversitiesPage() {
         </div>
 
         {/* Фильтры */}
-        <UniversityFilters filters={filters} onChange={setFilters} />
+        <UniversityFilters filters={filters} countries={countries} onChange={setFilters} />
 
-        {/* Счётчик результатов */}
+        {/* Счётчик */}
         {!loading && (
-          <p className="text-blue-200 text-sm mt-4 mb-2">
+          <p className="text-blue-300 text-sm mt-4 mb-2">
             Показано: {universities.length} университетов
           </p>
         )}
 
         {loading ? (
-          <div className="text-center text-white py-12">
-            <p className="text-xl">Загрузка...</p>
+          <div className="flex items-center justify-center py-16 gap-3 text-white">
+            <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+            <p>Загрузка...</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center text-white py-12">
             <p className="text-xl mb-2">Ничего не найдено</p>
-            <p className="text-blue-200 text-sm">Попробуй другой запрос или сбрось фильтры</p>
+            <p className="text-blue-300 text-sm mb-4">Попробуй другой запрос или сбрось фильтры</p>
             <button
-              onClick={() => { setSearch(''); setFilters({ region: '', type: '', has_dormitory: false, has_campus: false }) }}
-              className="mt-4 bg-white text-blue-900 px-6 py-2 rounded-full font-medium hover:bg-blue-50"
+              onClick={() => {
+                setSearch('')
+                setFilters({ region: '', country_id: '', type: '', has_dormitory: false, has_campus: false })
+              }}
+              className="bg-white text-blue-900 px-6 py-2 rounded-full font-medium hover:bg-blue-50"
             >
               Сбросить всё
             </button>

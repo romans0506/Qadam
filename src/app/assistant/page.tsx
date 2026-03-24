@@ -10,6 +10,13 @@ interface Message {
   content: string
 }
 
+interface StrengthsData {
+  strengths: string[]
+  weaknesses: string[]
+  next_steps: string[]
+  score: number
+}
+
 export default function AssistantPage() {
   const router = useRouter()
   const [userId, setUserId] = useState<string | null>(null)
@@ -19,6 +26,9 @@ export default function AssistantPage() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [initializing, setInitializing] = useState(true)
+  const [strengths, setStrengths] = useState<StrengthsData | null>(null)
+  const [strengthsLoading, setStrengthsLoading] = useState(false)
+  const [showAnalysis, setShowAnalysis] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const CHAT_STORAGE_PREFIX = 'qadam_ai_chat_v1'
@@ -60,7 +70,6 @@ export default function AssistantPage() {
     loadData()
   }, [userId])
 
-  // Сохраняем историю чата при изменении сообщений
   useEffect(() => {
     if (!userId) return
     if (!messages.length) return
@@ -79,7 +88,9 @@ export default function AssistantPage() {
     setProfile(profileData)
     setPortfolio(portfolioData)
 
-    // Если история уже есть — восстанавливаем и не дергаем initial analysis заново
+    // Загружаем анализ сильных/слабых сторон
+    loadStrengths(profileData, portfolioData)
+
     const savedMessages = loadSavedMessages(userId!)
     if (savedMessages && savedMessages.length > 0) {
       setMessages(savedMessages)
@@ -88,9 +99,26 @@ export default function AssistantPage() {
     }
 
     setInitializing(false)
-
-    // Приветственное сообщение от AI (только если истории ещё нет)
     await sendInitialAnalysis(profileData, portfolioData)
+  }
+
+  async function loadStrengths(profileData: Partial<UserProfile> | null, portfolioData: PortfolioItem[]) {
+    setStrengthsLoading(true)
+    try {
+      const res = await fetch('/api/analyze/strengths', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile: profileData, portfolio: portfolioData }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.strengths) setStrengths(data)
+      }
+    } catch {
+      // Не блокируем UI при ошибке анализа
+    } finally {
+      setStrengthsLoading(false)
+    }
   }
 
   async function sendInitialAnalysis(
@@ -99,7 +127,7 @@ export default function AssistantPage() {
   ) {
     setLoading(true)
     const controller = new AbortController()
-    const timeoutId = window.setTimeout(() => controller.abort(), 30000)
+    const timeoutId = window.setTimeout(() => controller.abort(), 45000)
     try {
       const res = await fetch('/api/analyze/assistant', {
         method: 'POST',
@@ -113,13 +141,8 @@ export default function AssistantPage() {
         })
       })
       const data = await res.json()
-      if (data?.message) {
-        setMessages([{ role: 'assistant', content: data.message }])
-        return
-      }
       setMessages([{ role: 'assistant', content: data?.message ?? 'AI не вернул ответ' }])
-    } catch (e) {
-      console.error(e)
+    } catch {
       setMessages([{ role: 'assistant', content: 'AI временно недоступен. Попробуй позже.' }])
     } finally {
       window.clearTimeout(timeoutId)
@@ -131,17 +154,13 @@ export default function AssistantPage() {
     if (!input.trim() || loading) return
 
     const userMessage = { role: 'user' as const, content: input }
-    // 1) Пытаемся применить календарную команду пользователя
-    //    (MIT -> генерация по дедлайнам; IELTS/SAT + дата -> добавление события)
     const baseMessages = [...messages, userMessage]
     let calendarAssistantNote: string | null = null
     if (userId) {
       calendarAssistantNote = await tryApplyCalendarCommand(userId, input)
     }
-  
+
     if (calendarAssistantNote) {
-      // Команду применили: отвечаем точным списком событий (без генерации ИИ),
-      // чтобы не было "почти так".
       setMessages([...baseMessages, { role: 'assistant', content: calendarAssistantNote }])
       setInput('')
       return
@@ -151,10 +170,9 @@ export default function AssistantPage() {
     setInput('')
     setLoading(true)
     const controller = new AbortController()
-    const timeoutId = window.setTimeout(() => controller.abort(), 30000)
+    const timeoutId = window.setTimeout(() => controller.abort(), 45000)
 
     try {
-      // 2) Отправляем вопрос в AI, чтобы он ответил “человечески”
       const res = await fetch('/api/analyze/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -169,37 +187,18 @@ export default function AssistantPage() {
       const data = await res.json()
       if (data?.message) {
         setMessages(prev => [...prev, { role: 'assistant', content: data.message }])
-
-        // Сохраняем в базу
         if (userId) {
           const supabase = createSupabaseBrowserClient()
-          // Не блокируем чат на запись в БД (иначе при проблемах с RLS может "зависнуть" запрос)
-          supabase
-            .from('ai_assistant_interactions')
-            .insert({
-              user_id: userId,
-              request_type: 'chat',
-              input_snapshot: { message: input },
-              response_summary: data.message.substring(0, 200),
-            })
-            .then(({ error }) => {
-              if (error) console.error('Failed to save ai_assistant_interactions:', error)
-            })
-            .catch((err) => console.error('Failed to save ai_assistant_interactions:', err))
+          supabase.from('ai_assistant_interactions').insert({
+            user_id: userId,
+            request_type: 'chat',
+            input_snapshot: { message: input },
+            response_summary: data.message.substring(0, 200),
+          }).then(({ error }) => { if (error) console.error('Failed to save interaction:', error) })
         }
-        return
       }
-
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: data?.message ?? 'AI не вернул ответ'
-      }])
-    } catch (e) {
-      console.error(e)
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Произошла ошибка. Попробуй ещё раз.'
-      }])
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Произошла ошибка. Попробуй ещё раз.' }])
     } finally {
       window.clearTimeout(timeoutId)
       setLoading(false)
@@ -209,71 +208,36 @@ export default function AssistantPage() {
   function normalizeMonth(month: string): number | null {
     const m = month.toLowerCase()
     const map: Record<string, number> = {
-      'январь': 1,
-      'января': 1,
-      'янв': 1,
-      'февраль': 2,
-      'февраля': 2,
-      'февр': 2,
-      'март': 3,
-      'марта': 3,
-      'апрель': 4,
-      'апреля': 4,
-      'апр': 4,
-      'май': 5,
-      'мая': 5,
-      'июнь': 6,
-      'июня': 6,
-      'июл': 7,
-      'июль': 7,
-      'июля': 7,
-      'август': 8,
-      'августа': 8,
-      'сен': 9,
-      'сентябрь': 9,
-      'сентября': 9,
-      'окт': 10,
-      'октябрь': 10,
-      'октября': 10,
-      'ноя': 11,
-      'ноябрь': 11,
-      'ноября': 11,
-      'дек': 12,
-      'декабрь': 12,
-      'декабря': 12,
+      'январь': 1, 'января': 1, 'янв': 1,
+      'февраль': 2, 'февраля': 2, 'февр': 2,
+      'март': 3, 'марта': 3,
+      'апрель': 4, 'апреля': 4, 'апр': 4,
+      'май': 5, 'мая': 5,
+      'июнь': 6, 'июня': 6,
+      'июль': 7, 'июля': 7, 'июл': 7,
+      'август': 8, 'августа': 8,
+      'сентябрь': 9, 'сентября': 9, 'сен': 9,
+      'октябрь': 10, 'октября': 10, 'окт': 10,
+      'ноябрь': 11, 'ноября': 11, 'ноя': 11,
+      'декабрь': 12, 'декабря': 12, 'дек': 12,
     }
     return map[m] ?? null
   }
 
   function parseDateFromText(text: string): string | null {
     const t = text.trim()
-
-    // 1) YYYY-MM-DD
     const iso = t.match(/\b(\d{4})-(\d{2})-(\d{2})\b/)
     if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`
-
-    // 2) DD.MM.YYYY or DD/MM/YYYY
     const dm = t.match(/\b(\d{1,2})[./](\d{1,2})[./](\d{4})\b/)
     if (dm) {
-      const d = String(dm[1]).padStart(2, '0')
-      const m = String(dm[2]).padStart(2, '0')
-      const y = dm[3]
-      return `${y}-${m}-${d}`
+      return `${dm[3]}-${String(dm[2]).padStart(2, '0')}-${String(dm[1]).padStart(2, '0')}`
     }
-
-    // 3) "12 апреля 2026"
-    const md = t.match(
-      /\b(\d{1,2})\s*([а-яА-Яa-zA-Z\.]+)\s*(\d{4})\b/
-    )
+    const md = t.match(/\b(\d{1,2})\s*([а-яА-Яa-zA-Z\.]+)\s*(\d{4})\b/)
     if (md) {
-      const d = String(md[1]).padStart(2, '0')
       const monthNum = normalizeMonth(md[2].replace('.', '').toLowerCase())
       if (!monthNum) return null
-      const m = String(monthNum).padStart(2, '0')
-      const y = md[3]
-      return `${y}-${m}-${d}`
+      return `${md[3]}-${String(monthNum).padStart(2, '0')}-${String(md[1]).padStart(2, '0')}`
     }
-
     return null
   }
 
@@ -281,10 +245,10 @@ export default function AssistantPage() {
     const normalized = text.toLowerCase()
     const notes: string[] = []
 
-    // A) Университетские дедлайны (внеси даты/дедлайны ... в календарь)
+    // A) Университетские дедлайны
     const likelyCalendarDeadlines =
       (normalized.includes('календар') || normalized.includes('calendar')) &&
-      (normalized.includes('дедлайн') || normalized.includes('даты') || normalized.includes('dates') || normalized.includes('enroll') || normalized.includes('application'))
+      (normalized.includes('дедлайн') || normalized.includes('даты') || normalized.includes('dates') || normalized.includes('application'))
 
     if (likelyCalendarDeadlines) {
       const supabase = createSupabaseBrowserClient()
@@ -301,7 +265,6 @@ export default function AssistantPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: text, candidates }),
         })
-
         const ai = await res.json()
         const universityId = ai?.university_id ?? ai?.universityId ?? ai?.id ?? null
         const universityName = ai?.matched_name ?? ai?.university_name ?? null
@@ -309,19 +272,12 @@ export default function AssistantPage() {
         if (!universityId) {
           notes.push('Не смог распознать университет по твоему запросу.')
         } else {
-          const ok = await (await import('@/services/calendarService')).generateCalendarFromUniversity(
-            uid,
-            universityId
-          )
+          const ok = await (await import('@/services/calendarService')).generateCalendarFromUniversity(uid, universityId)
           if (!ok) {
-            notes.push(
-              `Не удалось добавить дедлайны для ${universityName ?? 'университета'} в календарь. ` +
-                'Проверь, что `university_deadlines` заполнены и что вставка в `user_calendar_events` разрешена.'
-            )
+            notes.push(`Не удалось добавить дедлайны для ${universityName ?? 'университета'}.`)
           } else {
-            // Точный список из БД, чтобы ответ совпадал с тем, что реально добавлено.
             const sinceIso = new Date(Date.now() - 2 * 60 * 1000).toISOString()
-            const { data: inserted, error: insertedError } = await supabase
+            const { data: inserted } = await supabase
               .from('user_calendar_events')
               .select('title, start_date')
               .eq('user_id', uid)
@@ -330,99 +286,156 @@ export default function AssistantPage() {
               .gte('created_at', sinceIso)
               .order('start_date', { ascending: true })
 
-            if (insertedError) {
-              notes.push(
-                `Дедлайны добавились, но не смог прочитать события: ${insertedError.message}`
-              )
-            } else {
-              const relevant = (inserted ?? []).filter((e) =>
-                universityName ? (e.title ?? '').includes(String(universityName)) : true
-              )
-
-              const lines: string[] = []
-              lines.push(`Добавил дедлайны для ${universityName ?? 'университета'}:`)
-              for (const e of relevant.slice(0, 12)) {
-                const d = e.start_date ? new Date(e.start_date).toLocaleDateString('ru-RU') : ''
-                lines.push(`- ${e.title}${d ? ` (${d})` : ''}`)
-              }
-              if (relevant.length === 0) {
-                lines.push('События не найдены в календаре (возможно, они уже были).')
-              }
-              notes.push(lines.join('\n'))
+            const lines = [`Добавил дедлайны для ${universityName ?? 'университета'}:`]
+            for (const e of (inserted ?? []).slice(0, 12)) {
+              const d = e.start_date ? new Date(e.start_date).toLocaleDateString('ru-RU') : ''
+              lines.push(`- ${e.title}${d ? ` (${d})` : ''}`)
             }
+            if (!inserted?.length) lines.push('События не найдены (возможно, они уже были добавлены).')
+            notes.push(lines.join('\n'))
           }
         }
       }
     }
 
-    // B) IELTS/SAT + дата -> добавляем событие
-    const wantsIelts = normalized.includes('ielts')
-    const wantsSat = normalized.includes('sat') && !normalized.includes('ent')
+    // B) IELTS/SAT/ЕНТ/ACT/TOEFL + дата -> добавляем событие
+    const examPatterns = [
+      { key: 'ielts', label: 'IELTS', desc: 'Регистрация/сдача IELTS' },
+      { key: 'sat', label: 'SAT', desc: 'Регистрация/сдача SAT' },
+      { key: 'ент', label: 'ЕНТ', desc: 'Сдача ЕНТ' },
+      { key: 'ent', label: 'ЕНТ', desc: 'Сдача ЕНТ' },
+      { key: 'act', label: 'ACT', desc: 'Регистрация/сдача ACT' },
+      { key: 'toefl', label: 'TOEFL', desc: 'Регистрация/сдача TOEFL' },
+    ]
     const dateStr = parseDateFromText(text)
+    const matchedExam = examPatterns.find(p => normalized.includes(p.key))
 
-    if ((wantsIelts || wantsSat) && dateStr) {
+    if (matchedExam && dateStr) {
       const supabase = createSupabaseBrowserClient()
       const isoDate = new Date(`${dateStr}T00:00:00.000Z`).toISOString()
-
-      const examLabel = wantsIelts ? 'IELTS' : 'SAT'
-      const title = `📝 ${examLabel} — ${dateStr}`
-      const description = wantsIelts
-        ? 'Запись/регистрация на IELTS'
-        : 'Регистрация на SAT'
+      const title = `📝 ${matchedExam.label} — ${dateStr}`
 
       const { error } = await supabase.from('user_calendar_events').insert({
         user_id: uid,
         title,
-        description,
+        description: matchedExam.desc,
         start_date: isoDate,
         source_type: 'exam',
         is_auto_generated: false,
         is_done: false,
       })
 
-      if (error) {
-        console.error('Failed to insert exam event:', error)
-        notes.push('Нашёл дату, но не смог добавить событие в календарь (ошибка в БД).')
-      }
-      else {
-        notes.push(`Добавил ${examLabel} в календарь на ${dateStr}.`)
-      }
+      notes.push(error
+        ? 'Нашёл дату, но не смог добавить событие в календарь.'
+        : `Добавил ${matchedExam.label} в календарь на ${dateStr}.`)
     }
 
-    // если команда не распознана — не добавляем сообщение
     return notes.length ? notes.join('\n') : null
   }
 
   const quickQuestions = [
     'Каковы мои шансы поступить в НУ?',
-    'Какой экзамен лучше сдавать — SAT или ACT?',
-    'Когда нужно зарегистрироваться на IELTS?',
-    'Как улучшить мой профиль для MIT?',
-    'Что добавить в портфолио?',
+    'Какой экзамен лучше — SAT или ACT?',
+    'Когда зарегистрироваться на IELTS?',
     'Составь план подготовки на 3 месяца',
+    'Что добавить в портфолио?',
+    'Как улучшить профиль для MIT?',
   ]
 
+  function getScoreColor(score: number) {
+    if (score >= 75) return 'text-green-600'
+    if (score >= 50) return 'text-yellow-600'
+    return 'text-red-600'
+  }
+
+  function getScoreBg(score: number) {
+    if (score >= 75) return 'bg-green-50 border-green-200'
+    if (score >= 50) return 'bg-yellow-50 border-yellow-200'
+    return 'bg-red-50 border-red-200'
+  }
+
   if (initializing) return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 flex items-center justify-center">
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 flex items-center justify-center">
       <div className="text-center text-white">
-        <div className="text-4xl mb-4">🤖</div>
-        <p className="text-xl">AI анализирует твой профиль...</p>
+        <div className="w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-xl font-medium">AI анализирует твой профиль...</p>
       </div>
     </main>
   )
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 flex flex-col">
-      <div className="max-w-3xl mx-auto w-full flex flex-col h-screen p-4">
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 flex flex-col">
+      <div className="max-w-3xl mx-auto w-full flex flex-col h-screen p-4 gap-3">
 
         {/* Заголовок */}
-        <div className="text-center text-white py-4">
-          <h1 className="text-2xl font-bold">🤖 AI Помощник</h1>
-          <p className="text-blue-200 text-sm">Персональный навигатор по поступлению</p>
+        <div className="flex items-center justify-between pt-2">
+          <div>
+            <h1 className="text-xl font-bold text-white">AI Помощник</h1>
+            <p className="text-blue-300 text-xs">Персональный навигатор по поступлению</p>
+          </div>
+          <button
+            onClick={() => setShowAnalysis(!showAnalysis)}
+            className="bg-blue-800/50 text-blue-200 text-xs px-3 py-1.5 rounded-full hover:bg-blue-700/50 transition"
+          >
+            {showAnalysis ? 'Скрыть анализ' : 'Показать анализ'}
+          </button>
         </div>
 
+        {/* Панель анализа сильных/слабых сторон */}
+        {showAnalysis && (
+          <div className={`rounded-2xl border p-4 ${strengths ? getScoreBg(strengths.score) : 'bg-white/5 border-white/10'}`}>
+            {strengthsLoading ? (
+              <div className="flex items-center gap-2 text-white/60 text-sm">
+                <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                Анализирую профиль...
+              </div>
+            ) : strengths ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-gray-700">Анализ профиля</p>
+                  <span className={`text-2xl font-bold ${getScoreColor(strengths.score)}`}>
+                    {strengths.score}/100
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-green-700 mb-1">Сильные стороны</p>
+                    <ul className="space-y-1">
+                      {strengths.strengths.map((s, i) => (
+                        <li key={i} className="text-xs text-gray-700 flex gap-1">
+                          <span className="text-green-500 shrink-0">✓</span>{s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-red-700 mb-1">Слабые стороны</p>
+                    <ul className="space-y-1">
+                      {strengths.weaknesses.map((w, i) => (
+                        <li key={i} className="text-xs text-gray-700 flex gap-1">
+                          <span className="text-red-400 shrink-0">!</span>{w}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-blue-700 mb-1">Следующие шаги</p>
+                  <div className="flex flex-wrap gap-1">
+                    {strengths.next_steps.map((step, i) => (
+                      <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">{step}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-white/40 text-xs">Заполни профиль, чтобы получить анализ</p>
+            )}
+          </div>
+        )}
+
         {/* Сообщения */}
-        <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+        <div className="flex-1 overflow-y-auto space-y-3 pb-2">
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
@@ -431,7 +444,7 @@ export default function AssistantPage() {
                   : 'bg-white text-gray-800 shadow-lg'
               }`}>
                 {msg.role === 'assistant' && (
-                  <p className="text-xs text-blue-500 font-medium mb-1">🤖 Qadam AI</p>
+                  <p className="text-xs text-blue-500 font-semibold mb-1">Qadam AI</p>
                 )}
                 <p className="text-sm leading-relaxed whitespace-pre-line">{msg.content}</p>
               </div>
@@ -441,11 +454,11 @@ export default function AssistantPage() {
           {loading && (
             <div className="flex justify-start">
               <div className="bg-white rounded-2xl px-4 py-3 shadow-lg">
-                <p className="text-xs text-blue-500 font-medium mb-1">🤖 Qadam AI</p>
+                <p className="text-xs text-blue-500 font-semibold mb-1">Qadam AI</p>
                 <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  {[0, 150, 300].map(delay => (
+                    <div key={delay} className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: `${delay}ms` }} />
+                  ))}
                 </div>
               </div>
             </div>
@@ -455,12 +468,12 @@ export default function AssistantPage() {
 
         {/* Быстрые вопросы */}
         {messages.length <= 1 && (
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-wrap gap-2">
             {quickQuestions.map(q => (
               <button
                 key={q}
-                onClick={() => { setInput(q); }}
-                className="bg-blue-800 text-blue-100 text-xs px-3 py-1.5 rounded-full hover:bg-blue-700 transition"
+                onClick={() => setInput(q)}
+                className="bg-white/10 text-blue-100 text-xs px-3 py-1.5 rounded-full hover:bg-white/20 transition border border-white/10"
               >
                 {q}
               </button>
@@ -473,7 +486,7 @@ export default function AssistantPage() {
           <input
             type="text"
             placeholder="Задай вопрос AI помощнику..."
-            className="flex-1 bg-white rounded-2xl px-4 py-3 text-gray-800 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="flex-1 bg-white/10 backdrop-blur border border-white/20 rounded-2xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/15"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMessage()}
@@ -482,9 +495,9 @@ export default function AssistantPage() {
           <button
             onClick={sendMessage}
             disabled={loading || !input.trim()}
-            className="bg-blue-600 text-white px-5 py-3 rounded-2xl hover:bg-blue-700 transition disabled:opacity-40 font-bold"
+            className="bg-blue-600 text-white px-5 py-3 rounded-2xl hover:bg-blue-500 transition disabled:opacity-40 font-bold text-lg"
           >
-            →
+            ↑
           </button>
         </div>
 

@@ -17,24 +17,48 @@ export async function POST(req: NextRequest) {
 
   const { messages, profile, portfolio, isInitial } = await req.json()
 
+  const portfolioSummary = portfolio?.length
+    ? portfolio.map((p: any) => `  • ${p.type}: ${p.title}${p.organization ? ` (${p.organization})` : ''}${p.year ? `, ${p.year}` : ''}`).join('\n')
+    : '  Не указано'
+
   const profileSummary = `
 Профиль студента:
 - Имя: ${profile?.full_name || 'не указано'}
 - Класс: ${profile?.grade || 'не указан'}
-- GPA: ${profile?.gpa || 'не указан'}
-- ЕНТ: ${profile?.ent_score || 'не сдавал'}
-- SAT: ${profile?.sat_score || 'не сдавал'}
-- IELTS: ${profile?.ielts_score || 'не сдавал'}
-- Интересы: ${profile?.interests?.join(', ') || 'не указаны'}
-- Цель: ${profile?.target_university || 'не указан'}, ${profile?.target_specialty || 'не указана'}
-- Тип личности: ${profile?.personality_type || 'не определён'}
-- Портфолио: ${portfolio?.length || 0} достижений`
+- Школа: ${profile?.school || 'не указана'}
+- Город: ${profile?.city || 'не указан'}
+
+Академические показатели:
+- GPA: ${profile?.gpa || 'не указан'} (шкала 1-5)
+- ЕНТ: ${profile?.ent_score ? `${profile.ent_score}/140` : 'не сдавал'}
+- SAT: ${profile?.sat_score ? `${profile.sat_score}/1600` : 'не сдавал'}
+- ACT: ${profile?.act_score ? `${profile.act_score}/36` : 'не сдавал'}
+- IELTS: ${profile?.ielts_score ? `${profile.ielts_score}/9.0` : 'не сдавал'}
+- TOEFL: ${profile?.toefl_score ? `${profile.toefl_score}/120` : 'не сдавал'}
+
+Цель поступления:
+- Страна: ${profile?.target_country || 'не указана'}
+- Университет: ${profile?.target_university || 'не указан'}
+- Специальность: ${profile?.target_specialty || 'не указана'}
+
+Тип личности: ${profile?.personality_type || 'не определён'}
+Интересы: ${profile?.interests?.join(', ') || 'не указаны'}
+Языки: ${profile?.languages?.join(', ') || 'не указаны'}
+
+Портфолио (${portfolio?.length || 0} достижений):
+${portfolioSummary}`
 
   const systemPrompt = `Ты — Qadam AI, персональный помощник для казахстанских школьников по поступлению в университеты.
 
 ${profileSummary}
 
-Отвечай на русском языке. Будь конкретным и мотивирующим. Максимум 300 слов.`
+Правила ответов:
+- Отвечай ТОЛЬКО на русском языке
+- Будь конкретным, давай цифры и сроки
+- Максимум 350 слов
+- При анализе профиля всегда указывай: сильные стороны, слабые стороны, конкретные шаги
+- При вопросах об экзаменах указывай: рекомендуемый балл, сроки регистрации, как часто можно пересдавать
+- При планировании — составляй конкретный план по месяцам`
 
   try {
     const apiKey = process.env.NVIDIA_API_KEY
