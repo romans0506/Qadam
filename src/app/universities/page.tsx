@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { getUniversities, getCountries } from '@/services/universityService'
-import { University, Country } from '@/types/university'
+import { getUniversities, getCountries, getMajors } from '@/services/universityService'
+import { University, Country, Major } from '@/types/university'
 import UniversityCard from '@/components/universities/UniversityCard'
 import UniversityFilters from '@/components/universities/UniversityFilters'
 
@@ -10,6 +10,7 @@ const PAGE_SIZE = 20
 export default function UniversitiesPage() {
   const [universities, setUniversities] = useState<University[]>([])
   const [countries, setCountries] = useState<Country[]>([])
+  const [majors, setMajors] = useState<Major[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -18,6 +19,7 @@ export default function UniversitiesPage() {
   const [filters, setFilters] = useState({
     region: '' as '' | 'kazakhstan' | 'abroad',
     country_id: '',
+    major_id: '',
     type: '',
     has_dormitory: false,
     has_campus: false,
@@ -25,6 +27,7 @@ export default function UniversitiesPage() {
 
   useEffect(() => {
     getCountries().then(setCountries)
+    getMajors().then(setMajors)
   }, [])
 
   const loadUniversities = useCallback(async (newOffset: number, replace: boolean) => {
@@ -34,6 +37,7 @@ export default function UniversitiesPage() {
     const data = await getUniversities({
       region: filters.region || undefined,
       country_id: filters.country_id || undefined,
+      major_id: filters.major_id || undefined,
       type: filters.type || undefined,
       has_dormitory: filters.has_dormitory || undefined,
       has_campus: filters.has_campus || undefined,
@@ -41,11 +45,9 @@ export default function UniversitiesPage() {
       offset: newOffset,
     })
 
-    if (replace) {
-      setUniversities(data)
-    } else {
-      setUniversities(prev => [...prev, ...data])
-    }
+    if (replace) setUniversities(data)
+    else setUniversities(prev => [...prev, ...data])
+
     setHasMore(data.length === PAGE_SIZE)
     setOffset(newOffset + data.length)
     setLoading(false)
@@ -74,7 +76,6 @@ export default function UniversitiesPage() {
           <p className="text-blue-300">Найди свой университет мечты</p>
         </div>
 
-        {/* Поиск */}
         <div className="relative mb-4">
           <input
             type="text"
@@ -93,10 +94,8 @@ export default function UniversitiesPage() {
           )}
         </div>
 
-        {/* Фильтры */}
-        <UniversityFilters filters={filters} countries={countries} onChange={setFilters} />
+        <UniversityFilters filters={filters} countries={countries} majors={majors} onChange={setFilters} />
 
-        {/* Счётчик */}
         {!loading && (
           <p className="text-blue-300 text-sm mt-4 mb-2">
             Показано: {universities.length} университетов
@@ -115,7 +114,7 @@ export default function UniversitiesPage() {
             <button
               onClick={() => {
                 setSearch('')
-                setFilters({ region: '', country_id: '', type: '', has_dormitory: false, has_campus: false })
+                setFilters({ region: '', country_id: '', major_id: '', type: '', has_dormitory: false, has_campus: false })
               }}
               className="bg-white text-blue-900 px-6 py-2 rounded-full font-medium hover:bg-blue-50"
             >

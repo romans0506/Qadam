@@ -1,9 +1,30 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase'
-import { University, SavedUniversity, Country } from '@/types/university'
+import { University, SavedUniversity, Country, Major } from '@/types/university'
+
+export async function getMajors(): Promise<Major[]> {
+  const supabase = createSupabaseBrowserClient()
+  const { data, error } = await supabase
+    .from('majors')
+    .select('id, name, code')
+    .order('name')
+  if (error) return []
+  return data ?? []
+}
+
+export async function getUniversityIdsByMajor(majorId: string): Promise<string[]> {
+  const supabase = createSupabaseBrowserClient()
+  const { data, error } = await supabase
+    .from('university_majors')
+    .select('university_id')
+    .eq('major_id', majorId)
+  if (error) return []
+  return (data ?? []).map(r => r.university_id)
+}
 
 export async function getUniversities(filters?: {
   region?: 'kazakhstan' | 'abroad'
   country_id?: string
+  major_id?: string
   type?: string
   has_dormitory?: boolean
   has_campus?: boolean
@@ -37,10 +58,16 @@ export async function getUniversities(filters?: {
   if (filters?.has_campus) query = query.eq('has_campus', true)
   if (filters?.country_id) query = query.eq('main_country_id', filters.country_id)
 
+  // Фильтр по специальности: сначала получаем ID университетов
+  if (filters?.major_id) {
+    const ids = await getUniversityIdsByMajor(filters.major_id)
+    if (ids.length === 0) return []
+    query = query.in('id', ids)
+  }
+
   const { data, error } = await query
   if (error) return []
 
-  // Фильтруем по региону на стороне клиента (когда не выбрана конкретная страна)
   let result = data ?? []
   if (filters?.region && !filters?.country_id) {
     result = result.filter(u => u.country?.region === filters.region)

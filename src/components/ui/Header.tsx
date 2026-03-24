@@ -6,6 +6,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase'
 
 const links = [
   { href: '/universities', label: 'Университеты' },
+  { href: '/rankings', label: 'Рейтинги' },
   { href: '/tests', label: 'Тесты' },
   { href: '/calendar', label: 'Календарь' },
   { href: '/assistant', label: 'AI' },

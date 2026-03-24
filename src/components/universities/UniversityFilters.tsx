@@ -1,9 +1,10 @@
 'use client'
-import { Country } from '@/types/university'
+import { Country, Major } from '@/types/university'
 
 interface Filters {
   region: '' | 'kazakhstan' | 'abroad'
   country_id: string
+  major_id: string
   type: string
   has_dormitory: boolean
   has_campus: boolean
@@ -12,10 +13,11 @@ interface Filters {
 interface Props {
   filters: Filters
   countries: Country[]
+  majors: Major[]
   onChange: (filters: Filters) => void
 }
 
-export default function UniversityFilters({ filters, countries, onChange }: Props) {
+export default function UniversityFilters({ filters, countries, majors, onChange }: Props) {
   const filteredCountries = countries.filter(c =>
     !filters.region || c.region === filters.region
   )
@@ -61,6 +63,20 @@ export default function UniversityFilters({ filters, countries, onChange }: Prop
           </select>
         )}
 
+        {/* Специальность */}
+        {majors.length > 0 && (
+          <select
+            className="border rounded-full px-4 py-2 text-sm text-gray-700"
+            value={filters.major_id}
+            onChange={e => onChange({ ...filters, major_id: e.target.value })}
+          >
+            <option value="">Все специальности</option>
+            {majors.map(m => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+        )}
+
         {/* Тип */}
         <select
           className="border rounded-full px-4 py-2 text-sm text-gray-700"
@@ -92,6 +108,16 @@ export default function UniversityFilters({ filters, countries, onChange }: Prop
           />
           Кампус
         </label>
+
+        {/* Сброс */}
+        {(filters.region || filters.country_id || filters.major_id || filters.type || filters.has_dormitory || filters.has_campus) && (
+          <button
+            onClick={() => onChange({ region: '', country_id: '', major_id: '', type: '', has_dormitory: false, has_campus: false })}
+            className="text-xs text-gray-400 hover:text-red-500 transition ml-auto"
+          >
+            Сбросить фильтры
+          </button>
+        )}
 
       </div>
     </div>
