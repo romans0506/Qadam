@@ -20,6 +20,7 @@ export default function Profile() {
   const [profile, setProfile] = useState<Partial<UserProfile>>({})
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([])
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(false)
   const [memberSince, setMemberSince] = useState<string | null>(null)
 
@@ -58,9 +59,11 @@ export default function Profile() {
 
   async function handleSave() {
     if (!userId) return
+    setSaving(true)
     await saveProfile({ ...profile, user_id: userId })
     const { generateCalendarFromProfile } = await import('@/services/calendarService')
     await generateCalendarFromProfile(userId)
+    setSaving(false)
     setSaved(true)
     setEditing(false)
     setTimeout(() => setSaved(false), 3000)
@@ -163,6 +166,7 @@ export default function Profile() {
           profile={profile}
           editing={editing}
           saved={saved}
+          saving={saving}
           onEdit={() => setEditing(!editing)}
           onSave={handleSave}
           onChange={setProfile}
@@ -197,9 +201,10 @@ export default function Profile() {
         {editing && (
           <button
             onClick={handleSave}
-            className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition mt-4"
+            disabled={saving}
+            className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Сохранить профиль ✓
+            {saving ? 'Сохранение...' : 'Сохранить профиль ✓'}
           </button>
         )}
 

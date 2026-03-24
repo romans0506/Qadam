@@ -1,13 +1,18 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { getUniversities } from '@/services/universityService'
 import { University } from '@/types/university'
 import UniversityCard from '@/components/universities/UniversityCard'
 import UniversityFilters from '@/components/universities/UniversityFilters'
 
+const PAGE_SIZE = 20
+
 export default function UniversitiesPage() {
   const [universities, setUniversities] = useState<University[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [offset, setOffset] = useState(0)
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState({
     region: '' as '' | 'kazakhstan' | 'abroad',
@@ -16,20 +21,35 @@ export default function UniversitiesPage() {
     has_campus: false,
   })
 
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true)
-      const data = await getUniversities({
-        region: filters.region || undefined,
-        type: filters.type || undefined,
-        has_dormitory: filters.has_dormitory || undefined,
-        has_campus: filters.has_campus || undefined,
-      })
+  const loadUniversities = useCallback(async (newOffset: number, replace: boolean) => {
+    if (replace) setLoading(true)
+    else setLoadingMore(true)
+
+    const data = await getUniversities({
+      region: filters.region || undefined,
+      type: filters.type || undefined,
+      has_dormitory: filters.has_dormitory || undefined,
+      has_campus: filters.has_campus || undefined,
+      limit: PAGE_SIZE,
+      offset: newOffset,
+    })
+
+    if (replace) {
       setUniversities(data)
-      setLoading(false)
+    } else {
+      setUniversities(prev => [...prev, ...data])
     }
-    loadData()
+    setHasMore(data.length === PAGE_SIZE)
+    setOffset(newOffset + data.length)
+    setLoading(false)
+    setLoadingMore(false)
   }, [filters])
+
+  useEffect(() => {
+    setOffset(0)
+    setHasMore(true)
+    loadUniversities(0, true)
+  }, [filters]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Фильтрация по поиску на клиенте
   const filtered = universities.filter(u =>
@@ -73,7 +93,7 @@ export default function UniversitiesPage() {
         {/* Счётчик результатов */}
         {!loading && (
           <p className="text-blue-200 text-sm mt-4 mb-2">
-            Найдено: {filtered.length} университетов
+            Показано: {universities.length} университетов
           </p>
         )}
 
@@ -93,11 +113,25 @@ export default function UniversitiesPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-            {filtered.map(uni => (
-              <UniversityCard key={uni.id} university={uni} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              {filtered.map(uni => (
+                <UniversityCard key={uni.id} university={uni} />
+              ))}
+            </div>
+
+            {hasMore && !search && (
+              <div className="text-center mt-6">
+                <button
+                  onClick={() => loadUniversities(offset, false)}
+                  disabled={loadingMore}
+                  className="bg-white text-blue-900 px-8 py-3 rounded-full font-medium hover:bg-blue-50 disabled:opacity-50 transition"
+                >
+                  {loadingMore ? 'Загрузка...' : 'Загрузить ещё'}
+                </button>
+              </div>
+            )}
+          </>
         )}
 
       </div>
