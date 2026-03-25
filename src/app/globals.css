@@ -1,78 +1,334 @@
+/* ─── Fonts ───────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
+/* ─── Design Tokens ────────────────────────────────────────────────────────── */
 :root {
-  --background: #030712;
-  --foreground: #f8fafc;
-  --card: rgba(255,255,255,0.04);
-  --card-border: rgba(255,255,255,0.08);
-  --accent: #6366f1;
-  --accent-glow: rgba(99,102,241,0.3);
-  --muted: #94a3b8;
+  /* Backgrounds */
+  --bg-base:        #050505;
+  --bg-raised:      #0a0a0a;
+  --bg-card:        #111111;
+  --bg-card-hover:  #161616;
+
+  /* Borders */
+  --border:         rgba(255, 255, 255, 0.08);
+  --border-subtle:  rgba(255, 255, 255, 0.05);
+  --border-strong:  rgba(255, 255, 255, 0.12);
+  --border-sys:     #2c2c2e;
+
+  /* Text */
+  --text-primary:   #f5f5f7;
+  --text-secondary: #a1a1a6;
+  --text-tertiary:  #6e6e73;
+  --text-quaternary:#3a3a3c;
+
+  /* Accent */
+  --accent:         #6366f1;
+  --accent-soft:    rgba(99, 102, 241, 0.12);
+
+  /* Glow */
+  --glow-white:     rgba(255, 255, 255, 0.04);
+  --glow-accent:    rgba(99, 102, 241, 0.20);
+
+  /* Radii */
+  --radius-card:    24px;
+  --radius-btn:     980px;
+  --radius-inner:   16px;
 }
 
+/* ─── Tailwind v4 @theme ───────────────────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+               'SF Pro Text', system-ui, sans-serif;
+
+  --color-base:           var(--bg-base);
+  --color-raised:         var(--bg-raised);
+  --color-card:           var(--bg-card);
+  --color-card-hover:     var(--bg-card-hover);
+  --color-primary:        var(--text-primary);
+  --color-secondary:      var(--text-secondary);
+  --color-tertiary:       var(--text-tertiary);
+  --color-quaternary:     var(--text-quaternary);
+  --color-accent:         var(--accent);
+  --color-accent-soft:    var(--accent-soft);
+  --color-sys-sep:        var(--border-sys);
+
+  --spacing-18:  4.5rem;
+  --spacing-22:  5.5rem;
+  --spacing-26:  6.5rem;
+  --spacing-30:  7.5rem;
+
+  --radius-3xl:  24px;
+  --radius-4xl:  32px;
+  --radius-pill: 980px;
 }
 
-* {
+/* ─── Base Reset ───────────────────────────────────────────────────────────── */
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
 html {
-  background: var(--background);
+  background: var(--bg-base);
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+               'SF Pro Text', system-ui, sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Premium scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ── Global noise overlay — eliminates color banding, adds film-grain depth ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.022;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  z-index: 99999;
+  mix-blend-mode: overlay;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+
+/* ─── Scrollbar — ultra-minimal ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.3);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 9999px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.6);
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.14); }
+
+/* ─── Typography ─────────────────────────────────────────────────────────────
+   Strict hierarchy:
+     Headlines  → font-weight 700, letter-spacing -0.022em
+     Titles     → font-weight 600, letter-spacing -0.018em
+     Interactive→ font-weight 500
+     Body       → font-weight 400, letter-spacing -0.011em
+─────────────────────────────────────────────────────────────────────────────── */
+
+/* Hero / page title — ~72px */
+.t-hero {
+  font-size: clamp(3rem, 6vw, 4.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+  color: var(--text-primary);
 }
 
-/* Dot-grid background pattern */
-.bg-dot-grid {
-  background-image: radial-gradient(circle, rgba(99,102,241,0.15) 1px, transparent 1px);
-  background-size: 24px 24px;
+/* Section headline — ~48px */
+.t-headline {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  line-height: 1.08;
+  color: var(--text-primary);
 }
 
-/* Glow effect utilities */
-.glow-indigo {
-  box-shadow: 0 0 20px rgba(99,102,241,0.25), 0 0 60px rgba(99,102,241,0.1);
-}
-.glow-indigo-sm {
-  box-shadow: 0 0 12px rgba(99,102,241,0.2);
+/* Card title — ~20px */
+.t-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  line-height: 1.2;
+  color: var(--text-primary);
 }
 
-/* AI gradient border animation */
+/* Body — 15px regular */
+.t-body {
+  font-size: 0.9375rem;
+  font-weight: 400;
+  letter-spacing: -0.011em;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Caption / label — 12px medium all-caps */
+.t-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* ─── Card Primitives ────────────────────────────────────────────────────────
+   Inner top-edge highlight = the "razor edge" that makes Apple cards feel
+   tangible — as if light is catching the top rim of a physical slab.
+─────────────────────────────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+    0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.card-hover {
+  transition:
+    background  0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    border-color 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    transform   0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    box-shadow  0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.card-hover:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
+    0 12px 40px rgba(0, 0, 0, 0.65);
+}
+
+/* Glassmorphism — backdrop-blur-2xl = 40px */
+.card-glass {
+  background: rgba(28, 28, 30, 0.72);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+    0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ─── Button Primitives ──────────────────────────────────────────────────────
+   active:scale-[0.95] gives a tactile press feel on all buttons.
+─────────────────────────────────────────────────────────────────────────────── */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0 1.5rem;
+  height: 2.625rem;
+  background: #f5f5f7;
+  color: #050505;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.011em;
+  border-radius: var(--radius-btn);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  white-space: nowrap;
+  user-select: none;
+}
+.btn-primary:hover {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+}
+.btn-primary:active  { transform: scale(0.95); }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0 1.5rem;
+  height: 2.625rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: -0.011em;
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  white-space: nowrap;
+  user-select: none;
+}
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.btn-secondary:active  { transform: scale(0.95); }
+.btn-secondary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-danger {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 1.25rem; height: 2.25rem;
+  background: rgba(255, 69, 58, 0.12);
+  color: #ff453a;
+  font-size: 0.8125rem; font-weight: 500;
+  border-radius: var(--radius-btn);
+  border: 1px solid rgba(255, 69, 58, 0.2);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  user-select: none;
+}
+.btn-danger:hover  { background: rgba(255, 69, 58, 0.2); }
+.btn-danger:active { transform: scale(0.95); }
+
+/* ─── Form Input Primitives ─────────────────────────────────────────────────── */
+.inp {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;  /* default; override with pl-12 when icon is present */
+  font-size: 0.9375rem;
+  font-weight: 400;
+  letter-spacing: -0.011em;
+  color: var(--text-primary);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+}
+.inp::placeholder { color: var(--text-tertiary); }
+.inp:focus {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+}
+.inp:disabled { opacity: 0.35; cursor: default; }
+
+/* ─── Divider ────────────────────────────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0;
+}
+
+/* ─── Gradient Text ──────────────────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #f5f5f7 0%, #a1a1a6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-accent {
+  background: linear-gradient(135deg, #fff 0%, #a5b4fc 60%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── AI Animated Border ─────────────────────────────────────────────────────── */
 @keyframes border-spin {
   0%   { background-position: 0% 50%; }
   50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-
 .ai-border {
   position: relative;
-  border-radius: 1rem;
+  border-radius: var(--radius-inner);
 }
 .ai-border::before {
   content: '';
@@ -85,54 +341,43 @@ body {
   z-index: -1;
 }
 
-/* Shimmer animation for loading */
-@keyframes shimmer {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
-}
-.shimmer {
-  position: relative;
-  overflow: hidden;
-}
-.shimmer::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
-  animation: shimmer 1.8s ease-in-out infinite;
-}
-
-/* Typing dots */
+/* ─── Typing Dots ─────────────────────────────────────────────────────────────── */
 @keyframes blink {
   0%, 80%, 100% { opacity: 0.2; transform: scale(0.85); }
-  40%            { opacity: 1;   transform: scale(1); }
+  40%           { opacity: 1;   transform: scale(1); }
 }
 .dot-1 { animation: blink 1.4s infinite 0ms; }
 .dot-2 { animation: blink 1.4s infinite 200ms; }
 .dot-3 { animation: blink 1.4s infinite 400ms; }
 
-/* Premium glass card base */
-.glass-card {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  backdrop-filter: blur(12px);
-  border-radius: 1rem;
+/* ─── Background Utilities ───────────────────────────────────────────────────── */
+
+/* Opt-in class noise (for components that need layered noise) */
+.bg-noise::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  z-index: 9999;
 }
 
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #fff 0%, #a5b4fc 50%, #818cf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.bg-vignette {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99,102,241,0.06) 0%, transparent 70%),
+    var(--bg-base);
 }
 
-/* Timeline line */
+.bg-dot-grid {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
 .timeline-line {
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: linear-gradient(to bottom, #6366f1, transparent);
+  left: 0; top: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--border-strong), transparent);
 }

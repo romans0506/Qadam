@@ -11,7 +11,6 @@ const links = [
   { href: '/tests', label: 'Тесты' },
   { href: '/calendar', label: 'Календарь' },
   { href: '/assistant', label: 'AI', dot: true },
-  { href: '/dashboard', label: 'Шансы' },
   { href: '/profile', label: 'Профиль' },
 ]
 

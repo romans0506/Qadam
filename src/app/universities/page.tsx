@@ -7,6 +7,15 @@ import UniversityFilters from '@/components/universities/UniversityFilters'
 
 const PAGE_SIZE = 20
 
+const RESET_FILTERS = {
+  region: '' as '' | 'kazakhstan' | 'abroad',
+  country_id: '',
+  major_id: '',
+  type: '',
+  has_dormitory: false,
+  has_campus: false,
+}
+
 export default function UniversitiesPage() {
   const [universities, setUniversities] = useState<University[]>([])
   const [countries, setCountries] = useState<Country[]>([])
@@ -16,14 +25,7 @@ export default function UniversitiesPage() {
   const [hasMore, setHasMore] = useState(true)
   const [offset, setOffset] = useState(0)
   const [search, setSearch] = useState('')
-  const [filters, setFilters] = useState({
-    region: '' as '' | 'kazakhstan' | 'abroad',
-    country_id: '',
-    major_id: '',
-    type: '',
-    has_dormitory: false,
-    has_campus: false,
-  })
+  const [filters, setFilters] = useState(RESET_FILTERS)
 
   useEffect(() => {
     getCountries().then(setCountries)
@@ -45,11 +47,9 @@ export default function UniversitiesPage() {
       offset: newOffset,
     })
 
-    if (replace) {
-      setUniversities(data)
-    } else {
-      setUniversities(prev => [...prev, ...data])
-    }
+    if (replace) setUniversities(data)
+    else setUniversities(prev => [...prev, ...data])
+
     setHasMore(data.length === PAGE_SIZE)
     setOffset(newOffset + data.length)
     setLoading(false)
@@ -62,7 +62,6 @@ export default function UniversitiesPage() {
     loadUniversities(0, true)
   }, [filters]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Фильтрация по поиску на клиенте
   const filtered = universities.filter(u =>
     u.name.toLowerCase().includes(search.toLowerCase()) ||
     u.city?.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -71,73 +70,82 @@ export default function UniversitiesPage() {
   )
 
   return (
-    <main className="min-h-screen bg-[#030712] p-6">
-      <div className="max-w-5xl mx-auto">
+    <main className="min-h-screen bg-[var(--bg-base)]">
+      <div className="max-w-6xl mx-auto px-6 py-18">
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-1">Университеты</h1>
-          <p className="text-slate-500 text-sm">Найди свой университет мечты</p>
+        {/* ── Page header ──────────────────────────────────────────────── */}
+        <div className="mb-16">
+          <h1 className="t-headline mb-4">Университеты</h1>
+          <p className="t-body max-w-xl">
+            Найди свой университет мечты — фильтруй по стране, специальности и условиям поступления.
+          </p>
         </div>
 
-        {/* Поиск */}
-        <div className="relative mb-4">
+        {/* ── Search ───────────────────────────────────────────────────── */}
+        <div className="relative mb-8">
           <input
             type="text"
             placeholder="Поиск по названию, городу, стране..."
-            className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-5 py-3.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition"
+            className="inp pr-10"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition text-sm"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition"
+              aria-label="Очистить поиск"
             >
               ✕
             </button>
           )}
         </div>
 
-        {/* Фильтры */}
-        <UniversityFilters filters={filters} countries={countries} majors={majors} onChange={setFilters} />
+        {/* ── Filters ──────────────────────────────────────────────────── */}
+        <div className="mb-12">
+          <UniversityFilters filters={filters} countries={countries} majors={majors} onChange={setFilters} />
+        </div>
 
-        {/* Счётчик результатов */}
+        {/* ── Results count ─────────────────────────────────────────────── */}
         {!loading && (
-          <p className="text-slate-600 text-xs mt-4 mb-2">
-            {universities.length} университетов
+          <p className="t-label normal-case tracking-normal text-[var(--text-quaternary)] mb-6">
+            {filtered.length} {filtered.length === 1 ? 'университет' : 'университетов'}
           </p>
         )}
 
+        {/* ── States ───────────────────────────────────────────────────── */}
         {loading ? (
-          <div className="flex items-center justify-center py-16 gap-3">
-            <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-            <p className="text-slate-400">Загрузка...</p>
+          <div className="flex items-center justify-center py-24 gap-3">
+            <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+            <p className="t-body">Загрузка...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-slate-300 text-lg mb-2">Ничего не найдено</p>
-            <p className="text-slate-600 text-sm mb-6">Попробуй другой запрос или сбрось фильтры</p>
+          <div className="text-center py-24">
+            <p className="t-title mb-2">Ничего не найдено</p>
+            <p className="t-body mb-8">Попробуй другой запрос или сбрось фильтры</p>
             <button
-              onClick={() => { setSearch(''); setFilters({ region: '', country_id: '', major_id: '', type: '', has_dormitory: false, has_campus: false }) }}
-              className="bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-2.5 rounded-xl font-medium transition text-sm"
+              onClick={() => { setSearch(''); setFilters(RESET_FILTERS) }}
+              className="btn-primary"
             >
               Сбросить всё
             </button>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+            {/* ── Grid ───────────────────────────────────────────────────── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
               {filtered.map(uni => (
                 <UniversityCard key={uni.id} university={uni} />
               ))}
             </div>
 
+            {/* ── Load more ──────────────────────────────────────────────── */}
             {hasMore && !search && (
-              <div className="text-center mt-8">
+              <div className="text-center mt-16">
                 <button
                   onClick={() => loadUniversities(offset, false)}
                   disabled={loadingMore}
-                  className="bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white px-8 py-2.5 rounded-xl font-medium disabled:opacity-40 transition text-sm"
+                  className="btn-secondary disabled:opacity-40"
                 >
                   {loadingMore ? 'Загрузка...' : 'Загрузить ещё'}
                 </button>

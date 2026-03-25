@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { createSupabaseBrowserClient } from '@/lib/supabase'
 import { motion } from 'framer-motion'
+import { Loader2, ExternalLink, ChevronRight } from 'lucide-react'
+import { createSupabaseBrowserClient } from '@/lib/supabase'
 
 interface RankedUniversity {
   id: string
@@ -24,6 +25,16 @@ interface RankingSource {
   website_url: string | null
 }
 
+const container = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.04 } },
+}
+
+const rowItem = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+}
+
 export default function RankingsPage() {
   const [universities, setUniversities] = useState<RankedUniversity[]>([])
   const [sources, setSources] = useState<RankingSource[]>([])
@@ -31,13 +42,8 @@ export default function RankingsPage() {
   const [selectedYear, setSelectedYear] = useState<string>('')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadSources()
-  }, [])
-
-  useEffect(() => {
-    loadRankings()
-  }, [selectedSource, selectedYear])
+  useEffect(() => { loadSources() }, [])
+  useEffect(() => { loadRankings() }, [selectedSource, selectedYear])
 
   async function loadSources() {
     const supabase = createSupabaseBrowserClient()
@@ -81,32 +87,32 @@ export default function RankingsPage() {
     setLoading(false)
   }
 
-  const years = Array.from(new Set(
-    universities.map(u => u.ranking.year)
-  )).sort((a, b) => b - a)
-
+  const years = Array.from(new Set(universities.map(u => u.ranking.year))).sort((a, b) => b - a)
   const activeSource = sources.find(s => s.id === selectedSource)
 
   return (
-    <main className="min-h-screen bg-[#030712] p-6">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-[var(--bg-base)]">
+      <div className="max-w-4xl mx-auto px-6 py-18">
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-1">Рейтинги</h1>
-          <p className="text-slate-500 text-sm">Мировые и национальные рейтинги из авторитетных источников</p>
+        {/* ── Header ──────────────────────────────────────────────────── */}
+        <div className="mb-12">
+          <h1 className="t-headline mb-2">Рейтинги</h1>
+          <p className="t-body">Мировые и национальные рейтинги из авторитетных источников</p>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-2 mb-6">
-          <div className="flex flex-wrap gap-1.5">
+        {/* ── Filters ─────────────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center gap-3 mb-12">
+
+          {/* Source tabs */}
+          <div className="flex flex-wrap gap-2">
             {sources.map(s => (
               <button
                 key={s.id}
                 onClick={() => setSelectedSource(s.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition ${
+                className={`btn-secondary text-sm px-4 py-2 h-auto ${
                   selectedSource === s.id
-                    ? 'bg-indigo-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.3)]'
-                    : 'bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                    ? 'bg-[var(--text-primary)] text-[var(--bg-base)] border-[var(--text-primary)]'
+                    : ''
                 }`}
               >
                 {s.name}
@@ -114,87 +120,124 @@ export default function RankingsPage() {
             ))}
           </div>
 
+          {/* Year select */}
           {years.length > 1 && (
             <select
-              className="bg-white/5 border border-white/10 text-slate-300 rounded-xl px-4 py-1.5 text-sm focus:outline-none [&>option]:bg-[#0f1629]"
+              className="bg-[var(--bg-raised)] border border-[var(--border)] text-[var(--text-secondary)] rounded-full px-4 py-2 text-sm focus:outline-none focus:border-[var(--border-strong)] hover:border-[var(--border-strong)] transition [&>option]:bg-[#111111] cursor-pointer"
               value={selectedYear}
               onChange={e => setSelectedYear(e.target.value)}
             >
               <option value="">Все годы</option>
-              {years.map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           )}
 
+          {/* Source website */}
           {activeSource?.website_url && (
             <a
               href={activeSource.website_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-auto text-xs text-slate-500 hover:text-indigo-400 transition flex items-center gap-1"
+              className="ml-auto flex items-center gap-1.5 t-label normal-case tracking-normal text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition"
             >
-              Официальный сайт ↗
+              <ExternalLink size={12} strokeWidth={1.5} />
+              Официальный сайт
             </a>
           )}
         </div>
 
-        {/* Table */}
+        {/* ── States ──────────────────────────────────────────────────── */}
         {loading ? (
-          <div className="flex items-center justify-center py-20 gap-3">
-            <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-            <p className="text-slate-400">Загрузка...</p>
+          <div className="flex items-center justify-center py-24 gap-3">
+            <Loader2 size={18} strokeWidth={1.5} className="text-[var(--accent)] animate-spin" />
+            <p className="t-body">Загрузка...</p>
           </div>
         ) : universities.length === 0 ? (
-          <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-12 text-center">
-            <p className="text-slate-400 text-lg mb-1">Нет данных</p>
-            <p className="text-slate-600 text-sm">Выбери другой источник рейтинга</p>
+          <div className="card-glass p-16 text-center">
+            <p className="t-title text-[var(--text-secondary)] mb-2">Нет данных</p>
+            <p className="t-body text-sm">Выбери другой источник рейтинга</p>
           </div>
         ) : (
-          <div className="space-y-1.5">
-            {universities.map((uni, index) => (
-              <motion.div
-                key={`${uni.id}-${index}`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: index * 0.015 }}
-              >
-                <Link href={`/universities/${uni.id}`}>
-                  <div className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-indigo-500/20 rounded-xl p-3.5 transition group">
+          <motion.div
+            key={`${selectedSource}-${selectedYear}`}
+            variants={container}
+            initial="hidden"
+            animate="visible"
+            className="flex flex-col gap-3"
+          >
+            {universities.map((uni, index) => {
+              const pos = uni.ranking.position
+              const rankColor =
+                pos <= 10 ? 'text-amber-400/20' :
+                pos <= 50 ? 'text-[var(--accent)]/15' :
+                'text-white/[0.04]'
 
-                    {/* Position */}
-                    <div className={`w-10 text-center font-bold text-sm shrink-0 ${
-                      uni.ranking.position <= 10 ? 'text-amber-400' :
-                      uni.ranking.position <= 50 ? 'text-indigo-400' :
-                      'text-slate-600'
-                    }`}>
-                      #{uni.ranking.position}
+              return (
+                <motion.div key={`${uni.id}-${index}`} variants={rowItem}>
+                  <Link href={`/universities/${uni.id}`} className="group block">
+                    <div className="card card-hover relative overflow-hidden flex items-center gap-5 p-5">
+
+                      {/* Rank art — massive background number */}
+                      <span className={`absolute right-5 top-1/2 -translate-y-1/2 font-black leading-none select-none pointer-events-none tabular-nums ${rankColor}`}
+                        style={{ fontSize: 'clamp(48px, 8vw, 80px)' }}>
+                        {String(pos).padStart(2, '0')}
+                      </span>
+
+                      {/* Rank number (foreground) */}
+                      <div className="shrink-0 w-12 text-right">
+                        <span className={`font-bold tabular-nums text-lg leading-none ${
+                          pos <= 10 ? 'text-amber-400' :
+                          pos <= 50 ? 'text-[var(--accent)]' :
+                          'text-[var(--text-tertiary)]'
+                        }`}>
+                          {pos}
+                        </span>
+                      </div>
+
+                      {/* Photo */}
+                      <div className="w-11 h-11 rounded-xl overflow-hidden bg-[var(--bg-raised)] border border-[var(--border)] shrink-0">
+                        {uni.photo_url ? (
+                          <Image
+                            src={uni.photo_url}
+                            alt={uni.name}
+                            width={44}
+                            height={44}
+                            className="object-cover w-full h-full opacity-80"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-lg opacity-20">🎓</div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0 relative z-10">
+                        <p className="t-title text-base group-hover:text-white transition-colors truncate">
+                          {uni.name}
+                        </p>
+                        <p className="t-label normal-case tracking-normal text-[var(--text-tertiary)] mt-1 truncate">
+                          {uni.country?.flag_icon} {[uni.city?.name, uni.country?.name].filter(Boolean).join(', ')}
+                        </p>
+                      </div>
+
+                      {/* Source + year pill */}
+                      <div className="shrink-0 relative z-10 text-right hidden sm:block">
+                        <p className="t-label">{uni.ranking.source?.name}</p>
+                        <p className="t-label text-[var(--text-quaternary)] mt-0.5">{uni.ranking.year}</p>
+                      </div>
+
+                      {/* Arrow */}
+                      <ChevronRight
+                        size={16}
+                        strokeWidth={1.2}
+                        className="shrink-0 text-[var(--text-quaternary)] group-hover:text-[var(--text-secondary)] transition relative z-10"
+                      />
+
                     </div>
-
-                    {/* Photo */}
-                    <div className="w-9 h-9 rounded-lg overflow-hidden bg-white/5 shrink-0">
-                      {uni.photo_url ? (
-                        <Image src={uni.photo_url} alt={uni.name} width={36} height={36} className="object-cover w-full h-full" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-base opacity-20">🎓</div>
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium group-hover:text-indigo-300 transition truncate">{uni.name}</p>
-                      <p className="text-slate-600 text-xs">
-                        {uni.country?.flag_icon} {[uni.city?.name, uni.country?.name].filter(Boolean).join(', ')}
-                      </p>
-                    </div>
-
-                    <div className="text-slate-700 text-xs shrink-0">{uni.ranking.year}</div>
-                    <div className="text-slate-700 group-hover:text-slate-400 transition shrink-0 text-sm">→</div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
+                  </Link>
+                </motion.div>
+              )
+            })}
+          </motion.div>
         )}
 
       </div>

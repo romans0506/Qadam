@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Loader2, Mail, Lock, AlertCircle } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [mode, setMode]         = useState<'signin' | 'signup'>('signin')
+  const [error, setError]       = useState<string | null>(null)
+  const [loading, setLoading]   = useState(false)
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
@@ -19,6 +21,23 @@ export default function LoginPage() {
     })
   }, [router])
 
+  function friendlyError(msg: string): string {
+    const m = msg.toLowerCase()
+    if (m.includes('user already registered') || m.includes('already been registered'))
+      return 'Этот email уже зарегистрирован. Войдите в аккаунт.'
+    if (m.includes('invalid login credentials') || m.includes('invalid email or password'))
+      return 'Неверный email или пароль.'
+    if (m.includes('email not confirmed'))
+      return 'Подтверди email перед входом — проверь почту.'
+    if (m.includes('rate limit') || m.includes('too many requests'))
+      return 'Слишком много попыток. Подожди немного и попробуй снова.'
+    if (m.includes('password should be at least'))
+      return 'Пароль должен содержать минимум 6 символов.'
+    if (m.includes('unable to validate email'))
+      return 'Некорректный email адрес.'
+    return msg
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -26,8 +45,14 @@ export default function LoginPage() {
     try {
       const supabase = createSupabaseBrowserClient()
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({ email, password })
+        const { data, error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
+        // Supabase returns success even for existing emails (re-sends confirmation).
+        // If there's no session and no user identity, the email is already taken.
+        if (!data.session && data.user && data.user.identities?.length === 0) {
+          setError('Этот email уже зарегистрирован. Войдите в аккаунт.')
+          return
+        }
         router.push('/profile')
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -35,71 +60,133 @@ export default function LoginPage() {
         router.push('/profile')
       }
     } catch (err: any) {
-      setError(err?.message ?? 'Ошибка авторизации')
+      setError(friendlyError(err?.message ?? 'Ошибка авторизации'))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 p-6 flex items-center justify-center">
-      <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">Qadam</h1>
-        <p className="text-blue-200 mb-6">
-          {mode === 'signin' ? 'Вход' : 'Регистрация'} через Supabase Auth
-        </p>
+    <main className="min-h-screen bg-[#050505] flex items-center justify-center p-6">
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm text-blue-200">Email</label>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
-              required
-              className="w-full rounded-lg bg-white/10 border border-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-white/30"
-            />
+      {/* Ambient glow */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-indigo-900/10 blur-[140px]" />
+      </div>
+
+      {/* Card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98, y: 12 }}
+        animate={{ opacity: 1, scale: 1,    y: 0  }}
+        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="card-glass w-full max-w-md p-12 relative z-10"
+      >
+
+        {/* Logo mark */}
+        <div className="flex justify-center mb-8">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-violet-600 flex items-center justify-center">
+            <span className="text-white font-black text-lg leading-none">Q</span>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <label className="text-sm text-blue-200">Пароль</label>
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type="password"
-              required
-              minLength={6}
-              className="w-full rounded-lg bg-white/10 border border-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-white/30"
-            />
-          </div>
+        {/* Heading */}
+        <div className="text-center mb-10">
+          <h1 className="t-headline mb-2">Welcome to Qadam</h1>
+          <p className="t-body text-[var(--text-tertiary)]">
+            {mode === 'signin'
+              ? 'Sign in to continue your journey.'
+              : 'Create an account to get started.'}
+          </p>
+        </div>
 
-          {error && (
-            <div className="text-sm text-red-200 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-              {error}
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+
+          <div className="space-y-1.5">
+            <label className="t-label">Email</label>
+            <div className="relative">
+              <Mail
+                size={15}
+                strokeWidth={1.5}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-quaternary)] pointer-events-none z-10"
+              />
+              <input
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                type="email"
+                required
+                placeholder="you@example.com"
+                className="inp w-full pl-12 focus:ring-1 focus:ring-white/20"
+              />
             </div>
-          )}
+          </div>
 
+          <div className="space-y-1.5">
+            <label className="t-label">Пароль</label>
+            <div className="relative">
+              <Lock
+                size={15}
+                strokeWidth={1.5}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-quaternary)] pointer-events-none z-10"
+              />
+              <input
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                type="password"
+                required
+                minLength={6}
+                placeholder="••••••••"
+                className="inp w-full pl-12 focus:ring-1 focus:ring-white/20"
+              />
+            </div>
+          </div>
+
+          {/* Error */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-start gap-2.5 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-2xl p-3.5">
+                  <AlertCircle size={14} strokeWidth={1.5} className="shrink-0 mt-0.5" />
+                  <p>{error}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Submit */}
           <button
+            type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-white text-blue-950 font-semibold py-2 disabled:opacity-70"
+            className="btn-primary w-full flex items-center justify-center gap-2 mt-2"
           >
-            {loading ? '...' : mode === 'signin' ? 'Войти' : 'Создать аккаунт'}
+            {loading
+              ? <Loader2 size={16} strokeWidth={2} className="animate-spin" />
+              : (mode === 'signin' ? 'Войти' : 'Создать аккаунт')
+            }
           </button>
+
         </form>
 
-        <div className="mt-4 text-sm text-blue-200">
-          {mode === 'signin' ? (
-            <button className="underline" onClick={() => setMode('signup')}>
-              Нет аккаунта? Зарегистрироваться
+        {/* Mode toggle */}
+        <div className="mt-8 text-center">
+          <p className="t-body text-sm text-[var(--text-quaternary)]">
+            {mode === 'signin' ? 'Нет аккаунта?' : 'Уже есть аккаунт?'}
+            {' '}
+            <button
+              onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null) }}
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition font-medium"
+            >
+              {mode === 'signin' ? 'Зарегистрироваться' : 'Войти'}
             </button>
-          ) : (
-            <button className="underline" onClick={() => setMode('signin')}>
-              Уже есть аккаунт? Войти
-            </button>
-          )}
+          </p>
         </div>
-      </div>
+
+      </motion.div>
     </main>
   )
 }
-

@@ -13,78 +13,90 @@ export default function UniversityCard({ university }: { university: University 
 
   return (
     <Link href={`/universities/${university.id}`} className="group block h-full">
-      <div className="relative h-full bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] hover:border-indigo-500/30 rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-[0_0_30px_rgba(99,102,241,0.12)] hover:-translate-y-0.5">
+      <article className="card card-hover h-full flex flex-col overflow-hidden">
 
-        {/* Photo header */}
+        {/* ── Photo / placeholder header ─────────────────────────────── */}
         {university.photo_url ? (
-          <div className="relative h-32 overflow-hidden">
+          <div className="relative h-44 shrink-0 overflow-hidden">
             <Image
               src={university.photo_url}
               alt={university.name}
               fill
-              className="object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover opacity-70 group-hover:opacity-90 transition-opacity duration-500 scale-[1.02] group-hover:scale-100"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#030712] via-[#030712]/40 to-transparent" />
+            {/* scrim */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-[#111111]/30 to-transparent" />
+
             {topRanking && (
-              <div className="absolute top-3 right-3 bg-indigo-500/90 backdrop-blur text-white text-xs font-bold px-2.5 py-1 rounded-lg">
-                #{topRanking.position}
-                {topRanking.source?.name ? ` ${topRanking.source.name}` : ''}
+              <div className="absolute top-4 right-4">
+                <span className="t-label bg-black/60 backdrop-blur border border-white/10 px-2.5 py-1 rounded-full text-[10px] text-[var(--text-secondary)]">
+                  #{topRanking.position} {topRanking.source?.name ?? 'QS'}
+                </span>
               </div>
             )}
           </div>
         ) : (
-          <div className="relative h-20 bg-gradient-to-br from-indigo-500/10 to-violet-500/10 flex items-end px-5 pb-3">
-            <span className="text-4xl opacity-30">🎓</span>
+          /* No-photo: decorative gradient bar */
+          <div className="relative h-24 shrink-0 overflow-hidden bg-gradient-to-br from-[#1a1a2e] to-[#111111] flex items-center justify-center">
+            <span className="text-5xl opacity-10 select-none">🎓</span>
             {topRanking && (
-              <div className="absolute top-3 right-3 bg-indigo-500/80 text-white text-xs font-bold px-2.5 py-1 rounded-lg">
-                #{topRanking.position}
+              <div className="absolute top-4 right-4">
+                <span className="t-label bg-black/60 backdrop-blur border border-white/10 px-2.5 py-1 rounded-full text-[10px] text-[var(--text-secondary)]">
+                  #{topRanking.position} {topRanking.source?.name ?? 'QS'}
+                </span>
               </div>
             )}
           </div>
         )}
 
-        <div className="p-5">
-          {/* Name + location */}
-          <h3 className="font-bold text-white text-base leading-snug group-hover:text-indigo-300 transition-colors mb-1">
-            {university.name}
-          </h3>
-          <p className="text-slate-500 text-sm">
+        {/* ── Body ───────────────────────────────────────────────────── */}
+        <div className="flex flex-col flex-1 p-6 gap-3">
+
+          {/* Location — label row */}
+          <p className="t-label">
             {university.country?.flag_icon}{' '}
             {[university.city?.name, university.country?.name].filter(Boolean).join(', ')}
           </p>
 
-          {/* Description */}
+          {/* University name */}
+          <h3 className="t-title group-hover:text-white/80 transition-colors">
+            {university.name}
+          </h3>
+
+          {/* Short description */}
           {university.description_short && (
-            <p className="text-slate-400 text-xs mt-3 line-clamp-2 leading-relaxed">
+            <p className="t-body line-clamp-2 flex-1">
               {university.description_short}
             </p>
           )}
 
-          {/* Tags */}
-          <div className="flex flex-wrap gap-1.5 mt-4">
+          {/* ── Tags ──────────────────────────────────────────────────── */}
+          <div className="flex flex-wrap gap-2 pt-1 mt-auto">
             {university.type && (
-              <span className="bg-white/5 border border-white/10 text-slate-400 text-xs px-2.5 py-1 rounded-lg">
+              <span className="t-label bg-white/[0.04] border border-[var(--border)] px-3 py-1 rounded-full normal-case tracking-normal text-[var(--text-tertiary)]">
                 {typeLabel[university.type] ?? university.type}
               </span>
             )}
             {university.has_dormitory && (
-              <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs px-2.5 py-1 rounded-lg">
+              <span className="t-label bg-white/[0.04] border border-[var(--border)] px-3 py-1 rounded-full normal-case tracking-normal text-[var(--text-tertiary)]">
                 Общежитие
               </span>
             )}
             {university.has_campus && (
-              <span className="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-2.5 py-1 rounded-lg">
+              <span className="t-label bg-white/[0.04] border border-[var(--border)] px-3 py-1 rounded-full normal-case tracking-normal text-[var(--text-tertiary)]">
                 Кампус
               </span>
             )}
             {university.campuses && university.campuses.length > 1 && (
-              <span className="text-slate-500 text-xs px-1">
+              <span className="t-label normal-case tracking-normal text-[var(--text-quaternary)]">
                 {university.campuses.map(c => c.country?.flag_icon).filter(Boolean).join(' ')}
               </span>
             )}
           </div>
+
         </div>
-      </div>
+      </article>
     </Link>
   )
 }

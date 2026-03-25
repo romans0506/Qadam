@@ -54,15 +54,15 @@ export default function SaveUniversityButton({ universityId, universityName }: P
     <button
       onClick={handleSave}
       disabled={loading}
-      className={`w-full font-semibold py-3 rounded-xl transition text-sm ${
+      className={`w-full disabled:opacity-50 ${
         saved
-          ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400'
-          : 'bg-indigo-500 hover:bg-indigo-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.25)] hover:shadow-[0_0_30px_rgba(99,102,241,0.4)]'
-      } disabled:opacity-50`}
+          ? 'btn-secondary hover:border-red-500/40 hover:text-red-400'
+          : 'btn-primary'
+      }`}
     >
       {loading ? 'Загрузка...' :
-       saved ? 'Сохранено — нажми чтобы убрать' :
-       'Сохранить и добавить дедлайны в календарь'}
+       saved ? '✓ Сохранено — убрать' :
+       'Сохранить университет'}
     </button>
   )
 }

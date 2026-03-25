@@ -1,6 +1,9 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Sparkles, Send, Loader2, ArrowLeft, MessageSquare, BookOpen, Building2, Trophy } from 'lucide-react'
+import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
 import { getProfile, getPortfolio } from '@/services/profileService'
 import { UserProfile, PortfolioItem } from '@/types/student'
@@ -10,41 +13,83 @@ interface Message {
   content: string
 }
 
+const quickQuestions = [
+  'Каковы мои шансы поступить в НУ?',
+  'Какой экзамен лучше — SAT или ACT?',
+  'Когда регистрироваться на IELTS?',
+  'Как улучшить профиль для MIT?',
+  'Что добавить в портфолио?',
+  'Составь план подготовки на 3 месяца',
+]
+
+const actionShortcuts = [
+  { label: 'Пройди тесты',        href: '/tests',        icon: BookOpen },
+  { label: 'Сохрани университет', href: '/universities', icon: Building2 },
+  { label: 'Пройди олимпиады',    href: '/rankings',    icon: Trophy },
+]
+
+function computeReadinessScore(profile: Partial<UserProfile> | null): number {
+  if (!profile) return 0
+  let score = 0
+  let weight = 0
+
+  if (profile.gpa) {
+    score  += (profile.gpa / 4.0) * 35
+    weight += 35
+  }
+  if (profile.ent_score) {
+    score  += (profile.ent_score / 140) * 35
+    weight += 35
+  } else if (profile.sat_score) {
+    score  += (profile.sat_score / 1600) * 35
+    weight += 35
+  }
+  if (profile.ielts_score) {
+    score  += (profile.ielts_score / 9.0) * 20
+    weight += 20
+  } else if (profile.toefl_score) {
+    score  += (profile.toefl_score / 120) * 20
+    weight += 20
+  }
+  if (profile.grade) {
+    const gradeProgress = Math.min(Math.max((Number(profile.grade) - 9) / 3, 0), 1)
+    score  += gradeProgress * 10
+    weight += 10
+  }
+
+  if (weight === 0) return 0
+  return Math.round((score / weight) * 100)
+}
+
 export default function AssistantPage() {
   const router = useRouter()
-  const [userId, setUserId] = useState<string | null>(null)
+  const [userId, setUserId]   = useState<string | null>(null)
   const [profile, setProfile] = useState<Partial<UserProfile> | null>(null)
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([])
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [messages, setMessages]   = useState<Message[]>([])
+  const [input, setInput]         = useState('')
+  const [loading, setLoading]     = useState(false)
   const [initializing, setInitializing] = useState(true)
+  const [view, setView] = useState<'analysis' | 'chat'>('analysis')
+  const [initialAnalysis, setInitialAnalysis] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const CHAT_STORAGE_PREFIX = 'qadam_ai_chat_v1'
-
-  function getChatStorageKey(uid: string) {
-    return `${CHAT_STORAGE_PREFIX}:${uid}`
-  }
+  const getChatKey  = (uid: string) => `${CHAT_STORAGE_PREFIX}:${uid}`
 
   function loadSavedMessages(uid: string): Message[] | null {
     try {
-      const raw = localStorage.getItem(getChatStorageKey(uid))
+      const raw = localStorage.getItem(getChatKey(uid))
       if (!raw) return null
       const parsed = JSON.parse(raw) as Message[]
       if (!Array.isArray(parsed)) return null
       return parsed.filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
-    } catch {
-      return null
-    }
+    } catch { return null }
   }
 
   function persistMessages(uid: string, next: Message[]) {
-    try {
-      localStorage.setItem(getChatStorageKey(uid), JSON.stringify(next))
-    } catch (e) {
-      console.warn('Failed to persist chat history:', e)
-    }
+    try { localStorage.setItem(getChatKey(uid), JSON.stringify(next)) }
+    catch (e) { console.warn('Failed to persist chat history:', e) }
   }
 
   useEffect(() => {
@@ -55,15 +100,10 @@ export default function AssistantPage() {
     })
   }, [router])
 
-  useEffect(() => {
-    if (!userId) return
-    loadData()
-  }, [userId])
+  useEffect(() => { if (userId) loadData() }, [userId])
 
-  // Сохраняем историю чата при изменении сообщений
   useEffect(() => {
-    if (!userId) return
-    if (!messages.length) return
+    if (!userId || !messages.length) return
     persistMessages(userId, messages)
   }, [userId, messages])
 
@@ -74,28 +114,25 @@ export default function AssistantPage() {
   async function loadData() {
     const [profileData, portfolioData] = await Promise.all([
       getProfile(userId!),
-      getPortfolio(userId!)
+      getPortfolio(userId!),
     ])
     setProfile(profileData)
     setPortfolio(portfolioData)
 
-    // Если история уже есть — восстанавливаем и не дергаем initial analysis заново
-    const savedMessages = loadSavedMessages(userId!)
-    if (savedMessages && savedMessages.length > 0) {
-      setMessages(savedMessages)
+    const saved = loadSavedMessages(userId!)
+    if (saved && saved.length > 0) {
+      setMessages(saved)
+      if (saved[0]?.role === 'assistant') setInitialAnalysis(saved[0].content)
       setInitializing(false)
       return
     }
-
     setInitializing(false)
-
-    // Приветственное сообщение от AI (только если истории ещё нет)
     await sendInitialAnalysis(profileData, portfolioData)
   }
 
   async function sendInitialAnalysis(
     profileData: Partial<UserProfile> | null,
-    portfolioData: PortfolioItem[]
+    portfolioData: PortfolioItem[],
   ) {
     setLoading(true)
     const controller = new AbortController()
@@ -105,175 +142,47 @@ export default function AssistantPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
-        body: JSON.stringify({
-          messages: [],
-          profile: profileData,
-          portfolio: portfolioData,
-          isInitial: true,
-        })
+        body: JSON.stringify({ messages: [], profile: profileData, portfolio: portfolioData, isInitial: true }),
       })
       const data = await res.json()
-      if (data?.message) {
-        setMessages([{ role: 'assistant', content: data.message }])
-        return
-      }
-      setMessages([{ role: 'assistant', content: data?.message ?? 'AI не вернул ответ' }])
-    } catch (e) {
-      console.error(e)
-      setMessages([{ role: 'assistant', content: 'AI временно недоступен. Попробуй позже.' }])
+      const content = data?.message ?? 'AI не вернул ответ'
+      setMessages([{ role: 'assistant', content }])
+      setInitialAnalysis(content)
+    } catch {
+      const fallback = 'AI временно недоступен. Попробуй позже.'
+      setMessages([{ role: 'assistant', content: fallback }])
+      setInitialAnalysis(fallback)
     } finally {
       window.clearTimeout(timeoutId)
       setLoading(false)
     }
   }
 
-  async function sendMessage() {
-    if (!input.trim() || loading) return
-
-    const userMessage = { role: 'user' as const, content: input }
-    // 1) Пытаемся применить календарную команду пользователя
-    //    (MIT -> генерация по дедлайнам; IELTS/SAT + дата -> добавление события)
-    const baseMessages = [...messages, userMessage]
-    let calendarAssistantNote: string | null = null
-    if (userId) {
-      calendarAssistantNote = await tryApplyCalendarCommand(userId, input)
-    }
-  
-    if (calendarAssistantNote) {
-      // Команду применили: отвечаем точным списком событий (без генерации ИИ),
-      // чтобы не было "почти так".
-      setMessages([...baseMessages, { role: 'assistant', content: calendarAssistantNote }])
-      setInput('')
-      return
-    }
-
-    setMessages(baseMessages)
-    setInput('')
-    setLoading(true)
-    const controller = new AbortController()
-    const timeoutId = window.setTimeout(() => controller.abort(), 30000)
-
-    try {
-      // 2) Отправляем вопрос в AI, чтобы он ответил “человечески”
-      const res = await fetch('/api/analyze/assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          messages: baseMessages,
-          profile,
-          portfolio,
-          isInitial: false,
-        })
-      })
-      const data = await res.json()
-      if (data?.message) {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.message }])
-
-        // Сохраняем в базу
-        if (userId) {
-          const supabase = createSupabaseBrowserClient()
-          // Не блокируем чат на запись в БД (иначе при проблемах с RLS может "зависнуть" запрос)
-          supabase
-            .from('ai_assistant_interactions')
-            .insert({
-              user_id: userId,
-              request_type: 'chat',
-              input_snapshot: { message: input },
-              response_summary: data.message.substring(0, 200),
-            })
-            .then(({ error }) => {
-              if (error) console.error('Failed to save ai_assistant_interactions:', error)
-            })
-            .catch((err) => console.error('Failed to save ai_assistant_interactions:', err))
-        }
-        return
-      }
-
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: data?.message ?? 'AI не вернул ответ'
-      }])
-    } catch (e) {
-      console.error(e)
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Произошла ошибка. Попробуй ещё раз.'
-      }])
-    } finally {
-      window.clearTimeout(timeoutId)
-      setLoading(false)
-    }
-  }
-
+  /* ── Calendar / command parsing ─────────────────────────────────────── */
   function normalizeMonth(month: string): number | null {
     const m = month.toLowerCase()
     const map: Record<string, number> = {
-      'январь': 1,
-      'января': 1,
-      'янв': 1,
-      'февраль': 2,
-      'февраля': 2,
-      'февр': 2,
-      'март': 3,
-      'марта': 3,
-      'апрель': 4,
-      'апреля': 4,
-      'апр': 4,
-      'май': 5,
-      'мая': 5,
-      'июнь': 6,
-      'июня': 6,
-      'июл': 7,
-      'июль': 7,
-      'июля': 7,
-      'август': 8,
-      'августа': 8,
-      'сен': 9,
-      'сентябрь': 9,
-      'сентября': 9,
-      'окт': 10,
-      'октябрь': 10,
-      'октября': 10,
-      'ноя': 11,
-      'ноябрь': 11,
-      'ноября': 11,
-      'дек': 12,
-      'декабрь': 12,
-      'декабря': 12,
+      'январь':1,'января':1,'янв':1,'февраль':2,'февраля':2,'февр':2,
+      'март':3,'марта':3,'апрель':4,'апреля':4,'апр':4,'май':5,'мая':5,
+      'июнь':6,'июня':6,'июл':7,'июль':7,'июля':7,'август':8,'августа':8,
+      'сен':9,'сентябрь':9,'сентября':9,'окт':10,'октябрь':10,'октября':10,
+      'ноя':11,'ноябрь':11,'ноября':11,'дек':12,'декабрь':12,'декабря':12,
     }
     return map[m] ?? null
   }
 
   function parseDateFromText(text: string): string | null {
     const t = text.trim()
-
-    // 1) YYYY-MM-DD
     const iso = t.match(/\b(\d{4})-(\d{2})-(\d{2})\b/)
     if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`
-
-    // 2) DD.MM.YYYY or DD/MM/YYYY
     const dm = t.match(/\b(\d{1,2})[./](\d{1,2})[./](\d{4})\b/)
-    if (dm) {
-      const d = String(dm[1]).padStart(2, '0')
-      const m = String(dm[2]).padStart(2, '0')
-      const y = dm[3]
-      return `${y}-${m}-${d}`
-    }
-
-    // 3) "12 апреля 2026"
-    const md = t.match(
-      /\b(\d{1,2})\s*([а-яА-Яa-zA-Z\.]+)\s*(\d{4})\b/
-    )
+    if (dm) return `${dm[3]}-${String(dm[2]).padStart(2,'0')}-${String(dm[1]).padStart(2,'0')}`
+    const md = t.match(/\b(\d{1,2})\s*([а-яА-Яa-zA-Z\.]+)\s*(\d{4})\b/)
     if (md) {
-      const d = String(md[1]).padStart(2, '0')
-      const monthNum = normalizeMonth(md[2].replace('.', '').toLowerCase())
+      const monthNum = normalizeMonth(md[2].replace('.','').toLowerCase())
       if (!monthNum) return null
-      const m = String(monthNum).padStart(2, '0')
-      const y = md[3]
-      return `${y}-${m}-${d}`
+      return `${md[3]}-${String(monthNum).padStart(2,'0')}-${String(md[1]).padStart(2,'0')}`
     }
-
     return null
   }
 
@@ -281,17 +190,15 @@ export default function AssistantPage() {
     const normalized = text.toLowerCase()
     const notes: string[] = []
 
-    // A) Университетские дедлайны (внеси даты/дедлайны ... в календарь)
     const likelyCalendarDeadlines =
       (normalized.includes('календар') || normalized.includes('calendar')) &&
-      (normalized.includes('дедлайн') || normalized.includes('даты') || normalized.includes('dates') || normalized.includes('enroll') || normalized.includes('application'))
+      (normalized.includes('дедлайн') || normalized.includes('даты') || normalized.includes('dates') ||
+       normalized.includes('enroll') || normalized.includes('application'))
 
     if (likelyCalendarDeadlines) {
       const supabase = createSupabaseBrowserClient()
       const { data: candidates } = await supabase
-        .from('universities')
-        .select('id, name, description_short')
-        .limit(80)
+        .from('universities').select('id, name, description_short').limit(80)
 
       if (!candidates || candidates.length === 0) {
         notes.push('В базе университетов пока пусто, не могу добавить дедлайны.')
@@ -301,25 +208,17 @@ export default function AssistantPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: text, candidates }),
         })
-
         const ai = await res.json()
-        const universityId = ai?.university_id ?? ai?.universityId ?? ai?.id ?? null
+        const universityId   = ai?.university_id ?? ai?.universityId ?? ai?.id ?? null
         const universityName = ai?.matched_name ?? ai?.university_name ?? null
 
         if (!universityId) {
           notes.push('Не смог распознать университет по твоему запросу.')
         } else {
-          const ok = await (await import('@/services/calendarService')).generateCalendarFromUniversity(
-            uid,
-            universityId
-          )
+          const ok = await (await import('@/services/calendarService')).generateCalendarFromUniversity(uid, universityId)
           if (!ok) {
-            notes.push(
-              `Не удалось добавить дедлайны для ${universityName ?? 'университета'} в календарь. ` +
-                'Проверь, что `university_deadlines` заполнены и что вставка в `user_calendar_events` разрешена.'
-            )
+            notes.push(`Не удалось добавить дедлайны для ${universityName ?? 'университета'} в календарь.`)
           } else {
-            // Точный список из БД, чтобы ответ совпадал с тем, что реально добавлено.
             const sinceIso = new Date(Date.now() - 2 * 60 * 1000).toISOString()
             const { data: inserted, error: insertedError } = await supabase
               .from('user_calendar_events')
@@ -331,23 +230,17 @@ export default function AssistantPage() {
               .order('start_date', { ascending: true })
 
             if (insertedError) {
-              notes.push(
-                `Дедлайны добавились, но не смог прочитать события: ${insertedError.message}`
-              )
+              notes.push(`Дедлайны добавились, но не смог прочитать события: ${insertedError.message}`)
             } else {
-              const relevant = (inserted ?? []).filter((e) =>
+              const relevant = (inserted ?? []).filter(e =>
                 universityName ? (e.title ?? '').includes(String(universityName)) : true
               )
-
-              const lines: string[] = []
-              lines.push(`Добавил дедлайны для ${universityName ?? 'университета'}:`)
+              const lines = [`Добавил дедлайны для ${universityName ?? 'университета'}:`]
               for (const e of relevant.slice(0, 12)) {
                 const d = e.start_date ? new Date(e.start_date).toLocaleDateString('ru-RU') : ''
                 lines.push(`- ${e.title}${d ? ` (${d})` : ''}`)
               }
-              if (relevant.length === 0) {
-                lines.push('События не найдены в календаре (возможно, они уже были).')
-              }
+              if (relevant.length === 0) lines.push('События не найдены (возможно, уже были).')
               notes.push(lines.join('\n'))
             }
           }
@@ -355,140 +248,363 @@ export default function AssistantPage() {
       }
     }
 
-    // B) IELTS/SAT + дата -> добавляем событие
     const wantsIelts = normalized.includes('ielts')
-    const wantsSat = normalized.includes('sat') && !normalized.includes('ent')
-    const dateStr = parseDateFromText(text)
+    const wantsSat   = normalized.includes('sat') && !normalized.includes('ent')
+    const dateStr    = parseDateFromText(text)
 
     if ((wantsIelts || wantsSat) && dateStr) {
       const supabase = createSupabaseBrowserClient()
-      const isoDate = new Date(`${dateStr}T00:00:00.000Z`).toISOString()
-
       const examLabel = wantsIelts ? 'IELTS' : 'SAT'
-      const title = `📝 ${examLabel} — ${dateStr}`
-      const description = wantsIelts
-        ? 'Запись/регистрация на IELTS'
-        : 'Регистрация на SAT'
-
       const { error } = await supabase.from('user_calendar_events').insert({
         user_id: uid,
-        title,
-        description,
-        start_date: isoDate,
+        title: `📝 ${examLabel} — ${dateStr}`,
+        description: wantsIelts ? 'Запись/регистрация на IELTS' : 'Регистрация на SAT',
+        start_date: new Date(`${dateStr}T00:00:00.000Z`).toISOString(),
         source_type: 'exam',
         is_auto_generated: false,
         is_done: false,
       })
-
-      if (error) {
-        console.error('Failed to insert exam event:', error)
-        notes.push('Нашёл дату, но не смог добавить событие в календарь (ошибка в БД).')
-      }
-      else {
-        notes.push(`Добавил ${examLabel} в календарь на ${dateStr}.`)
-      }
+      notes.push(error
+        ? 'Нашёл дату, но не смог добавить событие в календарь (ошибка в БД).'
+        : `Добавил ${examLabel} в календарь на ${dateStr}.`
+      )
     }
 
-    // если команда не распознана — не добавляем сообщение
     return notes.length ? notes.join('\n') : null
   }
 
-  const quickQuestions = [
-    'Каковы мои шансы поступить в НУ?',
-    'Какой экзамен лучше сдавать — SAT или ACT?',
-    'Когда нужно зарегистрироваться на IELTS?',
-    'Как улучшить мой профиль для MIT?',
-    'Что добавить в портфолио?',
-    'Составь план подготовки на 3 месяца',
-  ]
+  async function sendMessage() {
+    if (!input.trim() || loading) return
+    const userMessage = { role: 'user' as const, content: input }
+    const baseMessages = [...messages, userMessage]
 
+    let calendarNote: string | null = null
+    if (userId) calendarNote = await tryApplyCalendarCommand(userId, input)
+
+    if (calendarNote) {
+      setMessages([...baseMessages, { role: 'assistant', content: calendarNote }])
+      setInput('')
+      return
+    }
+
+    setMessages(baseMessages)
+    setInput('')
+    setLoading(true)
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => controller.abort(), 30000)
+
+    try {
+      const res = await fetch('/api/analyze/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({ messages: baseMessages, profile, portfolio, isInitial: false }),
+      })
+      const data = await res.json()
+      const reply = data?.message ?? 'AI не вернул ответ'
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
+
+      if (userId) {
+        const supabase = createSupabaseBrowserClient()
+        void Promise.resolve(supabase.from('ai_assistant_interactions').insert({
+          user_id: userId,
+          request_type: 'chat',
+          input_snapshot: { message: input },
+          response_summary: reply.substring(0, 200),
+        })).then(({ error }) => { if (error) console.error('ai_assistant_interactions:', error) }).catch((err: unknown) => console.error('ai_assistant_interactions:', err))
+      }
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Произошла ошибка. Попробуй ещё раз.' }])
+    } finally {
+      window.clearTimeout(timeoutId)
+      setLoading(false)
+    }
+  }
+
+  /* ── Helpers ────────────────────────────────────────────────────────── */
+  const readinessScore = computeReadinessScore(profile)
+
+  const scoreColor =
+    readinessScore >= 70 ? 'text-emerald-400' :
+    readinessScore >= 40 ? 'text-amber-400' :
+    'text-red-400'
+
+  const analysisLines = initialAnalysis.split('\n').filter(l => l.trim())
+
+  const bentoStats = [
+    { label: 'GPA',   value: profile?.gpa?.toFixed(1),        max: '4.0'  },
+    { label: 'ЕНТ',   value: profile?.ent_score,              max: '140'  },
+    { label: 'SAT',   value: profile?.sat_score,              max: '1600' },
+    { label: 'IELTS', value: profile?.ielts_score?.toFixed(1),max: '9.0'  },
+    { label: 'ACT',   value: profile?.act_score,              max: '36'   },
+    { label: 'TOEFL', value: profile?.toefl_score,            max: '120'  },
+  ].filter(s => s.value != null && s.value !== undefined)
+
+  /* ── Initializing ─────────────────────────────────────────────────── */
   if (initializing) return (
-    <main className="min-h-screen bg-[#030712] flex items-center justify-center">
-      <div className="text-center text-white">
-        <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-2xl">✨</div>
-        <p className="text-slate-300 text-lg font-medium">AI анализирует твой профиль...</p>
-        <p className="text-slate-500 text-sm mt-1">Это займёт несколько секунд</p>
+    <main className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center">
+      <div className="text-center">
+        <div className="ai-border mx-auto mb-6 w-16 h-16 rounded-2xl">
+          <div className="w-full h-full rounded-[calc(1rem-1px)] bg-[var(--bg-base)] flex items-center justify-center">
+            <Sparkles size={22} strokeWidth={1.5} className="text-[var(--accent)]" />
+          </div>
+        </div>
+        <p className="t-title mb-1">Анализирую твой профиль...</p>
+        <p className="t-body text-sm">Это займёт несколько секунд</p>
       </div>
     </main>
   )
 
+  /* ── Analysis panel ───────────────────────────────────────────────── */
+  if (view === 'analysis') return (
+    <main className="min-h-screen bg-[var(--bg-base)]">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-violet-600/[0.04] blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-[var(--accent)]/[0.04] blur-[120px]" />
+      </div>
+
+      <div className="max-w-3xl mx-auto px-6 py-18 relative z-10">
+
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex items-center justify-between mb-12"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-violet-600 flex items-center justify-center shrink-0">
+              <Sparkles size={16} strokeWidth={1.5} className="text-white" />
+            </div>
+            <div>
+              <h1 className="t-title gradient-text-accent text-base leading-tight">AI Помощник</h1>
+              <p className="t-label normal-case tracking-normal text-[var(--text-tertiary)]">Персональный навигатор</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setView('chat')}
+            className="btn-secondary flex items-center gap-2"
+          >
+            <MessageSquare size={14} strokeWidth={1.5} />
+            Открыть диалог
+          </button>
+        </motion.div>
+
+        {/* Score + Stats row */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.5 }}
+          className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-5 mb-6"
+        >
+          {/* Stats bento */}
+          {bentoStats.length > 0 && (
+            <div className="card-glass p-6">
+              <p className="t-label mb-4">Академические показатели</p>
+              <div className="grid grid-cols-3 gap-3">
+                {bentoStats.map(s => (
+                  <div key={s.label} className="card p-3 rounded-2xl text-center">
+                    <p className="t-label mb-1">{s.label}</p>
+                    <p className="t-title text-lg leading-none">{String(s.value)}</p>
+                    <p className="t-label text-[var(--text-quaternary)] mt-0.5 text-[10px]">/ {s.max}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Overall score */}
+          <div className="card-glass p-6 flex flex-col items-center justify-center min-w-[160px]">
+            <p className="t-label mb-3 text-center">Общий балл</p>
+            <div className={`text-5xl font-black tabular-nums leading-none mb-2 ${scoreColor}`}>
+              {readinessScore}
+            </div>
+            <p className="t-label text-[var(--text-quaternary)]">/ 100</p>
+            <div className="w-full mt-4 h-1.5 rounded-full bg-white/[0.06]">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-violet-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${readinessScore}%` }}
+                transition={{ delay: 0.4, duration: 0.8, ease: 'easeOut' }}
+              />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* AI Analysis */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="card-glass p-8 mb-6"
+        >
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent)] to-violet-600 flex items-center justify-center shrink-0">
+              <Sparkles size={14} strokeWidth={1.5} className="text-white" />
+            </div>
+            <span className="t-label gradient-text-accent normal-case tracking-normal text-sm font-semibold">
+              Следующие шаги
+            </span>
+          </div>
+
+          {loading && analysisLines.length === 0 ? (
+            <div className="flex items-center gap-3 text-[var(--text-tertiary)]">
+              <Loader2 size={16} strokeWidth={1.5} className="animate-spin shrink-0" />
+              <p className="t-body text-sm">Анализируем твой профиль...</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {analysisLines.map((line, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 + i * 0.05, duration: 0.3 }}
+                  className="flex items-start gap-3"
+                >
+                  <Sparkles
+                    size={13}
+                    strokeWidth={1.5}
+                    className="text-[var(--accent)]/60 shrink-0 mt-1"
+                  />
+                  <p className="t-body text-sm leading-relaxed">{line}</p>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+
+        {/* Action shortcuts */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
+          <p className="t-label mb-4">Быстрые действия</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {actionShortcuts.map(({ label, href, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="card card-hover p-4 rounded-2xl flex flex-col items-center gap-2.5 text-center"
+              >
+                <div className="w-9 h-9 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center">
+                  <Icon size={16} strokeWidth={1.5} className="text-[var(--accent)]" />
+                </div>
+                <p className="t-body text-xs leading-snug">{label}</p>
+              </Link>
+            ))}
+          </div>
+        </motion.div>
+
+      </div>
+    </main>
+  )
+
+  /* ── Chat UI ──────────────────────────────────────────────────────── */
   return (
-    <main className="min-h-screen bg-[#030712] flex flex-col">
+    <main className="min-h-screen bg-[var(--bg-base)] flex flex-col">
       <div className="max-w-3xl mx-auto w-full flex flex-col h-screen px-4 pb-4">
 
         {/* Header */}
-        <div className="flex items-center gap-3 py-4 border-b border-white/[0.06] mb-4">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-base shrink-0">
-            ✨
+        <div className="flex items-center gap-3 py-5 border-b border-[var(--border)]">
+          <button
+            onClick={() => setView('analysis')}
+            className="w-8 h-8 rounded-xl hover:bg-white/[0.05] flex items-center justify-center transition shrink-0"
+          >
+            <ArrowLeft size={16} strokeWidth={1.5} className="text-[var(--text-tertiary)]" />
+          </button>
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--accent)] to-violet-600 flex items-center justify-center shrink-0">
+            <Sparkles size={14} strokeWidth={1.5} className="text-white" />
           </div>
           <div>
-            <h1 className="text-white font-bold text-base leading-tight">Qadam AI</h1>
-            <p className="text-slate-500 text-xs">Персональный навигатор</p>
+            <h1 className="t-title gradient-text-accent text-base leading-tight">Qadam AI</h1>
+            <p className="t-label normal-case tracking-normal text-[var(--text-tertiary)]">Персональный навигатор</p>
           </div>
-          <div className="ml-auto flex items-center gap-1.5">
-            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-slate-500">онлайн</span>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="t-label normal-case tracking-normal text-[var(--text-tertiary)]">онлайн</span>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto space-y-3 pb-4">
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {msg.role === 'assistant' && (
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-sm shrink-0 mr-2 mt-1">
-                  ✨
+        <div className="flex-1 overflow-y-auto py-6 space-y-4">
+          <AnimatePresence initial={false}>
+            {messages.map((msg, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className={`flex items-end gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {msg.role === 'assistant' && (
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--accent)] to-violet-600 flex items-center justify-center shrink-0 mb-0.5">
+                    <Sparkles size={13} strokeWidth={1.5} className="text-white" />
+                  </div>
+                )}
+                <div className={`max-w-[78%] px-4 py-3 ${
+                  msg.role === 'user'
+                    ? 'bg-[var(--text-primary)] text-[var(--bg-base)] rounded-3xl rounded-br-lg font-medium text-sm'
+                    : 'card-glass rounded-3xl rounded-bl-lg text-sm text-[var(--text-secondary)] leading-relaxed'
+                }`}>
+                  <p className="whitespace-pre-line">{msg.content}</p>
                 </div>
-              )}
-              <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                msg.role === 'user'
-                  ? 'bg-indigo-500 text-white rounded-br-sm'
-                  : 'bg-white/[0.06] border border-white/[0.08] text-slate-200 rounded-bl-sm'
-              }`}>
-                <p className="text-sm leading-relaxed whitespace-pre-line">{msg.content}</p>
-              </div>
-            </div>
-          ))}
+              </motion.div>
+            ))}
+          </AnimatePresence>
 
+          {/* Typing indicator */}
           {loading && (
-            <div className="flex justify-start items-start gap-2">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-sm shrink-0 mt-1">
-                ✨
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-end gap-2.5"
+            >
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--accent)] to-violet-600 flex items-center justify-center shrink-0">
+                <Sparkles size={13} strokeWidth={1.5} className="text-white" />
               </div>
-              <div className="bg-white/[0.06] border border-white/[0.08] rounded-2xl rounded-bl-sm px-4 py-3">
-                <div className="flex gap-1.5 items-center h-5">
-                  <span className="w-2 h-2 bg-indigo-400 rounded-full dot-1" />
-                  <span className="w-2 h-2 bg-indigo-400 rounded-full dot-2" />
-                  <span className="w-2 h-2 bg-indigo-400 rounded-full dot-3" />
+              <div className="card-glass rounded-3xl rounded-bl-lg px-5 py-4">
+                <div className="flex gap-1.5 items-center">
+                  <span className="w-2 h-2 bg-[var(--accent)] rounded-full dot-1" />
+                  <span className="w-2 h-2 bg-[var(--accent)] rounded-full dot-2" />
+                  <span className="w-2 h-2 bg-[var(--accent)] rounded-full dot-3" />
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
         {/* Quick questions */}
-        {messages.length <= 1 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {quickQuestions.map(q => (
-              <button
-                key={q}
-                onClick={() => setInput(q)}
-                className="bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:border-indigo-500/30 hover:bg-indigo-500/10 text-xs px-3 py-1.5 rounded-xl transition"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        )}
+        <AnimatePresence>
+          {messages.length < 3 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex flex-wrap gap-2 mb-4"
+            >
+              {quickQuestions.map(q => (
+                <button
+                  key={q}
+                  onClick={() => setInput(q)}
+                  className="btn-secondary text-xs px-3.5 py-2 h-auto"
+                >
+                  {q}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Input — AI gradient border */}
+        {/* Input */}
         <div className="ai-border">
-          <div className="relative bg-[#030712] rounded-[calc(1rem-1px)] flex gap-2 p-2">
+          <div className="relative bg-[var(--bg-base)] rounded-[calc(1rem-1px)] flex items-center gap-2 p-2">
             <input
               type="text"
               placeholder="Задай вопрос AI помощнику..."
-              className="flex-1 bg-transparent px-3 py-2 text-white placeholder-slate-500 text-sm focus:outline-none"
+              className="flex-1 bg-transparent px-3 py-2 t-body text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && sendMessage()}
@@ -497,9 +613,12 @@ export default function AssistantPage() {
             <button
               onClick={sendMessage}
               disabled={loading || !input.trim()}
-              className="bg-indigo-500 hover:bg-indigo-400 disabled:opacity-30 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl text-sm font-semibold transition shrink-0"
+              className="w-9 h-9 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent)]/80 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition shrink-0"
             >
-              →
+              {loading
+                ? <Loader2 size={14} strokeWidth={2} className="text-white animate-spin" />
+                : <Send size={14} strokeWidth={2} className="text-white" />
+              }
             </button>
           </div>
         </div>

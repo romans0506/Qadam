@@ -44,7 +44,7 @@ export async function getUniversities(filters?: {
       country:countries!main_country_id(*),
       city:cities!main_city_id(*),
       rankings:university_rankings(
-        position, year,
+        id, position, year,
         source:ranking_sources(name)
       ),
       campuses(
@@ -81,7 +81,7 @@ export async function getUniversityById(id: string): Promise<University | null> 
       country:countries!main_country_id(*),
       city:cities!main_city_id(*),
       rankings:university_rankings(
-        position, year,
+        id, position, year,
         source:ranking_sources(name)
       ),
       campuses(

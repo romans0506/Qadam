@@ -1,10 +1,11 @@
 'use client'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { MapPin, School, Edit3, Check, Loader2, Camera } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
-import { getProfile, saveProfile, getPortfolio, addPortfolioItem, deletePortfolioItem } from '@/services/profileService'
+import { getProfile, saveProfile, getPortfolio, addPortfolioItem, deletePortfolioItem, uploadAvatar } from '@/services/profileService'
 import { UserProfile, PortfolioItem } from '@/types/student'
 import ProfileForm from '@/components/profile/ProfileForm'
 import AcademicStats from '@/components/profile/AcademicStats'
@@ -23,6 +24,9 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(false)
   const [memberSince, setMemberSince] = useState<string | null>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
@@ -33,7 +37,7 @@ export default function Profile() {
       setUserEmail(u.email ?? null)
       if (u.created_at) {
         setMemberSince(new Date(u.created_at).toLocaleDateString('ru-RU', {
-          month: 'long', year: 'numeric'
+          month: 'long', year: 'numeric',
         }))
       }
     })
@@ -44,7 +48,7 @@ export default function Profile() {
     async function loadData() {
       const [profileData, portfolioData] = await Promise.all([
         getProfile(userId!),
-        getPortfolio(userId!)
+        getPortfolio(userId!),
       ])
       if (profileData) {
         setProfile(profileData)
@@ -79,94 +83,200 @@ export default function Profile() {
     setPortfolio(prev => prev.filter(item => item.id !== id))
   }
 
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !userId) return
+    setAvatarUploading(true)
+    setAvatarError(null)
+    try {
+      const url = await uploadAvatar(userId, file)
+      if (url) {
+        const updated = { ...profile, avatar_url: url }
+        setProfile(updated)
+        await saveProfile({ ...updated, user_id: userId })
+      }
+    } catch (err: any) {
+      setAvatarError(err?.message ?? 'Ошибка загрузки')
+    } finally {
+      setAvatarUploading(false)
+      e.target.value = ''
+    }
+  }
+
   if (!userId) return (
-    <main className="min-h-screen bg-[#030712] flex items-center justify-center">
+    <main className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center">
       <div className="flex items-center gap-3">
-        <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-400">Загрузка...</p>
+        <Loader2 size={18} strokeWidth={1.5} className="text-[var(--accent)] animate-spin" />
+        <p className="t-body">Загрузка...</p>
       </div>
     </main>
   )
 
-  const statusConfig: Record<string, { label: string; color: string }> = {
-    free: { label: 'Базовый', color: 'bg-slate-500/10 border border-slate-500/20 text-slate-400' },
-    premium: { label: 'Premium', color: 'bg-amber-500/10 border border-amber-500/20 text-amber-400' },
-    pro: { label: 'Pro', color: 'bg-violet-500/10 border border-violet-500/20 text-violet-400' },
+  const statusConfig: Record<string, { label: string; cls: string }> = {
+    free:    { label: 'Базовый', cls: 'text-[var(--text-tertiary)] border-[var(--border)]' },
+    premium: { label: 'Premium', cls: 'text-amber-400 border-amber-500/30' },
+    pro:     { label: 'Pro',     cls: 'text-violet-400 border-violet-500/30' },
   }
-
   const status = statusConfig[profile.status ?? 'free'] ?? statusConfig.free
 
-  const inputClass = 'w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition'
-  const sectionClass = 'bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 mb-4'
+  /* Initials for default avatar */
+  const initials = (() => {
+    const name = profile.full_name || userEmail || ''
+    if (!name) return 'Q'
+    const parts = name.trim().split(/\s+/)
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+    return name.slice(0, 2).toUpperCase()
+  })()
+
+  /* Academic bento stats */
+  const bentoStats = [
+    { label: 'GPA',   value: profile.gpa != null    ? profile.gpa.toFixed(1)       : null, max: '4.0' },
+    { label: 'ЕНТ',   value: profile.ent_score != null ? String(profile.ent_score)  : null, max: '140' },
+    { label: 'SAT',   value: profile.sat_score != null ? String(profile.sat_score)  : null, max: '1600' },
+    { label: 'IELTS', value: profile.ielts_score != null ? profile.ielts_score.toFixed(1) : null, max: '9.0' },
+    { label: 'ACT',   value: profile.act_score != null  ? String(profile.act_score) : null, max: '36' },
+    { label: 'TOEFL', value: profile.toefl_score != null ? String(profile.toefl_score) : null, max: '120' },
+  ]
 
   return (
-    <main className="min-h-screen bg-[#030712] p-6">
-      <div className="max-w-2xl mx-auto">
+    <main className="min-h-screen bg-[var(--bg-base)]">
+      <div className="max-w-3xl mx-auto px-6 py-18 space-y-6">
 
-        {/* Profile header card */}
-        <div className={`${sectionClass} mb-4`}>
-          <div className="flex items-start gap-5">
-            <div className="relative shrink-0">
-              <Image
-                src={profile.avatar_url || '/avatar.png'}
-                alt="avatar"
-                width={72}
-                height={72}
-                className="w-18 h-18 rounded-2xl object-cover border border-white/10"
-                style={{ width: 72, height: 72 }}
+        {/* ── HEADER CARD ─────────────────────────────────────────────── */}
+        <div className="card p-8">
+          <div className="flex items-start gap-6">
+
+            {/* Avatar */}
+            <div className="relative shrink-0 group">
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                className="relative w-[88px] h-[88px] rounded-full overflow-hidden border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40"
+                title="Сменить фото"
+              >
+                {profile.avatar_url ? (
+                  <Image
+                    src={profile.avatar_url}
+                    alt="avatar"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[var(--accent)] to-violet-600 flex items-center justify-center">
+                    <span className="text-white font-bold text-2xl leading-none select-none">
+                      {initials}
+                    </span>
+                  </div>
+                )}
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                  {avatarUploading
+                    ? <Loader2 size={18} strokeWidth={2} className="text-white animate-spin" />
+                    : <Camera size={18} strokeWidth={1.5} className="text-white" />
+                  }
+                </div>
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={handleAvatarChange}
               />
-              <span className={`absolute -bottom-1 -right-1 text-xs px-2 py-0.5 rounded-lg font-medium ${status.color}`}>
-                {status.label}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-white">
-                {profile.full_name || userEmail || 'Профиль'}
-              </h1>
-              {profile.nickname && (
-                <p className="text-indigo-400 text-sm font-medium">@{profile.nickname}</p>
+              {avatarError && (
+                <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-red-400">
+                  {avatarError}
+                </p>
               )}
+            </div>
+
+            {/* Identity */}
+            <div className="flex-1 min-w-0 pt-1">
+              <div className="flex items-center gap-3 flex-wrap mb-1">
+                <h1 className="t-headline leading-none">
+                  {profile.full_name || userEmail || 'Профиль'}
+                </h1>
+                <span className={`t-label normal-case tracking-normal border px-2.5 py-1 rounded-full ${status.cls}`}>
+                  {status.label}
+                </span>
+              </div>
+
+              {profile.nickname && (
+                <p className="t-body text-[var(--accent)] text-sm font-medium mb-1">
+                  @{profile.nickname}
+                </p>
+              )}
+
               {(profile.school || profile.city || profile.study_country) && (
-                <p className="text-slate-500 text-xs mt-1">
+                <p className="t-body text-sm flex items-center gap-1.5 mt-1">
+                  {profile.city || profile.study_country
+                    ? <MapPin size={12} strokeWidth={1.2} className="text-[var(--text-tertiary)] shrink-0" />
+                    : <School size={12} strokeWidth={1.2} className="text-[var(--text-tertiary)] shrink-0" />
+                  }
                   {[profile.school, profile.city, profile.study_country].filter(Boolean).join(' · ')}
                 </p>
               )}
+
               {profile.personality_type && (
-                <span className="inline-block mt-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs px-2.5 py-1 rounded-lg">
+                <span className="inline-block mt-2 border border-[var(--border)] px-2.5 py-1 rounded-full t-label normal-case tracking-normal text-[var(--text-secondary)]">
                   {profile.personality_type}
                 </span>
               )}
+
               {memberSince && (
-                <p className="text-slate-600 text-xs mt-2">В Qadam с {memberSince}</p>
+                <p className="t-label normal-case tracking-normal text-[var(--text-quaternary)] mt-2">
+                  В Qadam с {memberSince}
+                </p>
               )}
             </div>
+
+            {/* Edit toggle */}
             <button
               onClick={() => setEditing(!editing)}
-              className="shrink-0 text-xs text-slate-500 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg transition"
+              className="btn-secondary shrink-0 flex items-center gap-1.5 px-4 py-2 h-auto text-sm"
             >
+              <Edit3 size={13} strokeWidth={1.5} />
               {editing ? 'Отмена' : 'Изменить'}
             </button>
           </div>
         </div>
 
-        {/* Bio */}
-        <div className={sectionClass}>
-          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">О себе</h2>
+        {/* ── ACADEMIC BENTO ──────────────────────────────────────────── */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+          {bentoStats.map(({ label, value, max }) => (
+            <div key={label} className="card p-4 text-center">
+              <p className={`font-bold tracking-tight leading-none mb-1 ${
+                value ? 'text-[var(--text-primary)] text-xl' : 'text-[var(--text-quaternary)] text-lg'
+              }`}>
+                {value ?? '—'}
+              </p>
+              <p className="t-label">{label}</p>
+              {max && <p className="t-label text-[var(--text-quaternary)] mt-0.5 normal-case tracking-normal">/ {max}</p>}
+            </div>
+          ))}
+        </div>
+
+        {/* ── BIO ─────────────────────────────────────────────────────── */}
+        <div className="card p-6">
+          <p className="t-label mb-4">О себе</p>
           {editing ? (
             <textarea
-              className={`${inputClass} h-24 resize-none`}
+              className="inp h-24 resize-none"
               placeholder="Расскажи о себе, своих целях и интересах..."
               value={profile.bio || ''}
               onChange={e => setProfile({ ...profile, bio: e.target.value })}
             />
           ) : (
-            <p className="text-slate-400 text-sm leading-relaxed">
-              {profile.bio || <span className="text-slate-600">Биография не заполнена</span>}
+            <p className="t-body leading-loose">
+              {profile.bio || (
+                <span className="text-[var(--text-quaternary)]">Биография не заполнена</span>
+              )}
             </p>
           )}
         </div>
 
-        {/* Личная информация */}
+        {/* ── SUB-COMPONENTS ─────────────────────────────────────────── */}
         <ProfileForm
           profile={profile}
           editing={editing}
@@ -177,25 +287,21 @@ export default function Profile() {
           onChange={setProfile}
         />
 
-        {/* Цели поступления */}
         <GoalsSection
           profile={profile}
           editing={editing}
           onChange={setProfile}
         />
 
-        {/* Академические показатели */}
         <AcademicStats
           profile={profile}
           editing={editing}
           onChange={setProfile}
         />
 
-        {/* Сохранённые университеты */}
         {userId && <SavedUniversities userId={userId} />}
         {userId && <TestResults userId={userId} />}
 
-        {/* Портфолио */}
         <Portfolio
           items={portfolio}
           userId={userId}
@@ -203,24 +309,37 @@ export default function Profile() {
           onDelete={handleDeletePortfolio}
         />
 
+        {/* ── SAVE CTA ────────────────────────────────────────────────── */}
         {editing && (
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl transition mt-4 shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+            className="btn-primary w-full disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {saving ? 'Сохранение...' : 'Сохранить профиль'}
+            {saving
+              ? <><Loader2 size={15} strokeWidth={2} className="animate-spin" /> Сохранение...</>
+              : <><Check size={15} strokeWidth={2} /> Сохранить профиль</>
+            }
           </button>
         )}
 
         {saved && (
-          <p className="text-center text-emerald-400 text-sm font-medium mt-3">Профиль сохранён</p>
+          <p className="text-center text-emerald-400 text-sm font-medium">
+            Профиль сохранён
+          </p>
         )}
 
-        <div className="text-center mt-8 flex justify-center gap-6">
-          <Link href="/" className="text-slate-600 hover:text-slate-300 text-sm transition">Главная</Link>
-          <Link href="/dashboard" className="text-slate-600 hover:text-slate-300 text-sm transition">Мои шансы</Link>
-          <Link href="/calendar" className="text-slate-600 hover:text-slate-300 text-sm transition">Календарь</Link>
+        {/* ── Footer links ────────────────────────────────────────────── */}
+        <div className="flex justify-center gap-8 pt-8">
+          {[
+            { href: '/', label: 'Главная' },
+            { href: '/assistant', label: 'AI помощник' },
+            { href: '/calendar', label: 'Календарь' },
+          ].map(({ href, label }) => (
+            <Link key={href} href={href} className="t-label normal-case tracking-normal text-[var(--text-quaternary)] hover:text-[var(--text-secondary)] transition">
+              {label}
+            </Link>
+          ))}
         </div>
 
       </div>
