@@ -81,6 +81,29 @@ export interface UniversityMajor {
   major?: Major
 }
 
+export interface NcaaTeam {
+  id: string
+  sport: string
+  division: string
+  conference: string | null
+  ranking: number | null
+  wins: number | null
+  losses: number | null
+  season: string | null
+}
+
+export interface EducationalEvent {
+  id: string
+  title: string
+  description: string | null
+  event_type: string
+  start_date: string
+  end_date: string | null
+  url: string | null
+  organizer: string | null
+  country: string | null
+}
+
 export interface SavedUniversity {
   id: string
   user_id: string

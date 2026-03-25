@@ -50,6 +50,8 @@ export default function TestsPage() {
 
   async function retakeTest(testId: string) {
     const supabase = createSupabaseBrowserClient()
+
+    // Удаляем старые данные
     const { data: oldSessions } = await supabase
       .from('user_test_sessions')
       .select('id')
@@ -68,107 +70,118 @@ export default function TestsPage() {
   }
 
   function getTestStatus(testId: string) {
-    return sessions.find(s => s.test_id === testId)?.status ?? null
+    const session = sessions.find(s => s.test_id === testId)
+    return session?.status ?? null
   }
 
   function isUnlocked(index: number) {
     if (index === 0) return true
-    return getTestStatus(tests[index - 1].id) === 'completed'
+    const prevTest = tests[index - 1]
+    return getTestStatus(prevTest.id) === 'completed'
   }
 
   const completedCount = tests.filter(t => getTestStatus(t.id) === 'completed').length
 
   if (loading) return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 flex items-center justify-center">
+    <main className="min-h-screen bg-[#030712] flex items-center justify-center">
       <div className="flex items-center gap-3 text-white">
-        <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-        <p>Загрузка...</p>
+        <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-400">Загрузка...</p>
       </div>
     </main>
   )
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 p-6">
+    <main className="min-h-screen bg-[#030712] p-6">
       <div className="max-w-2xl mx-auto">
 
-        <div className="text-center text-white mb-8">
-          <h1 className="text-4xl font-bold mb-2">Тесты</h1>
-          <p className="text-blue-300">Определи тип личности и подходящее направление</p>
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-1">Тесты</h1>
+          <p className="text-slate-500 text-sm">Пройди тесты, чтобы узнать своё направление</p>
           {tests.length > 0 && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
-              <div className="flex gap-1">
-                {tests.map((_, i) => (
-                  <div key={i} className={`w-2 h-2 rounded-full ${i < completedCount ? 'bg-green-400' : 'bg-white/20'}`} />
-                ))}
+            <div className="flex items-center gap-3 mt-4">
+              <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
+                  style={{ width: `${(completedCount / tests.length) * 100}%` }}
+                />
               </div>
-              <span className="text-sm text-blue-200">{completedCount}/{tests.length} пройдено</span>
+              <span className="text-slate-500 text-xs shrink-0">{completedCount}/{tests.length}</span>
             </div>
           )}
         </div>
 
         {tests.length === 0 ? (
-          <div className="bg-white/10 border border-white/10 rounded-2xl p-8 text-center text-blue-200">
-            <p className="text-lg">Тесты скоро появятся!</p>
+          <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-10 text-center">
+            <p className="text-slate-400 text-lg">Тесты скоро появятся!</p>
           </div>
         ) : (
           <div className="space-y-3">
             {tests.map((test, index) => {
               const status = getTestStatus(test.id)
               const unlocked = isUnlocked(index)
-              const completed = status === 'completed'
+              const isCompleted = status === 'completed'
 
               return (
                 <div
                   key={test.id}
-                  className={`rounded-2xl p-5 border transition ${
-                    completed
-                      ? 'bg-green-900/20 border-green-500/30'
+                  className={`relative bg-white/[0.03] border rounded-2xl p-5 transition-all duration-200 ${
+                    isCompleted
+                      ? 'border-emerald-500/20 bg-emerald-500/[0.03]'
                       : unlocked
-                        ? 'bg-white/10 border-white/20 hover:bg-white/15'
-                        : 'bg-white/5 border-white/10 opacity-50'
+                      ? 'border-indigo-500/20 hover:border-indigo-500/40 hover:bg-white/[0.05] hover:shadow-[0_0_20px_rgba(99,102,241,0.08)]'
+                      : 'border-white/[0.05] opacity-50'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 ${
-                        completed ? 'bg-green-500/20 text-green-400' :
-                        unlocked ? 'bg-blue-500/20 text-blue-300' :
-                        'bg-white/10 text-white/30'
-                      }`}>
-                        {completed ? '✓' : unlocked ? index + 1 : '🔒'}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-white">{test.title}</h3>
-                        {test.description && (
-                          <p className="text-blue-300 text-sm mt-0.5">{test.description}</p>
-                        )}
-                        {!unlocked && (
-                          <p className="text-white/30 text-xs mt-0.5">Пройди предыдущий тест</p>
-                        )}
-                      </div>
+                  <div className="flex items-center gap-4">
+                    {/* Step indicator */}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                      isCompleted
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : unlocked
+                        ? 'bg-indigo-500/20 text-indigo-400'
+                        : 'bg-white/5 text-slate-600'
+                    }`}>
+                      {isCompleted ? '✓' : unlocked ? index + 1 : '🔒'}
                     </div>
 
-                    <div className="shrink-0 flex flex-col items-end gap-1.5">
-                      {completed ? (
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`font-semibold text-sm ${
+                        isCompleted ? 'text-emerald-300' : unlocked ? 'text-white' : 'text-slate-600'
+                      }`}>
+                        {test.title}
+                      </h3>
+                      {test.description && (
+                        <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">{test.description}</p>
+                      )}
+                    </div>
+
+                    {/* Action */}
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      {isCompleted ? (
                         <>
-                          <span className="bg-green-500/20 text-green-400 text-xs px-3 py-1 rounded-full border border-green-500/30">
+                          <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs px-3 py-1 rounded-lg">
                             Пройден
                           </span>
                           <button
                             onClick={() => retakeTest(test.id)}
-                            className="text-blue-400 text-xs hover:text-blue-300 transition"
+                            className="text-slate-500 hover:text-slate-300 text-xs transition"
                           >
-                            Пройти снова
+                            Пройти заново
                           </button>
                         </>
                       ) : unlocked ? (
                         <button
                           onClick={() => router.push(`/tests/${test.id}`)}
-                          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-xl transition font-medium"
+                          className="bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-[0_0_12px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]"
                         >
                           Начать →
                         </button>
-                      ) : null}
+                      ) : (
+                        <span className="text-slate-600 text-xs">Заблокировано</span>
+                      )}
                     </div>
                   </div>
                 </div>

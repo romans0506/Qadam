@@ -5,20 +5,10 @@ export async function getMajors(): Promise<Major[]> {
   const supabase = createSupabaseBrowserClient()
   const { data, error } = await supabase
     .from('majors')
-    .select('id, name, code')
+    .select('*')
     .order('name')
   if (error) return []
   return data ?? []
-}
-
-export async function getUniversityIdsByMajor(majorId: string): Promise<string[]> {
-  const supabase = createSupabaseBrowserClient()
-  const { data, error } = await supabase
-    .from('university_majors')
-    .select('university_id')
-    .eq('major_id', majorId)
-  if (error) return []
-  return (data ?? []).map(r => r.university_id)
 }
 
 export async function getUniversities(filters?: {
@@ -35,6 +25,17 @@ export async function getUniversities(filters?: {
 
   const pageSize = filters?.limit ?? 20
   const pageOffset = filters?.offset ?? 0
+
+  // If filtering by major, first resolve the university IDs
+  let majorUniversityIds: string[] | null = null
+  if (filters?.major_id) {
+    const { data: umData } = await supabase
+      .from('university_majors')
+      .select('university_id')
+      .eq('major_id', filters.major_id)
+    majorUniversityIds = (umData ?? []).map((r: any) => r.university_id)
+    if (majorUniversityIds.length === 0) return []
+  }
 
   let query = supabase
     .from('universities')
@@ -57,20 +58,15 @@ export async function getUniversities(filters?: {
   if (filters?.has_dormitory) query = query.eq('has_dormitory', true)
   if (filters?.has_campus) query = query.eq('has_campus', true)
   if (filters?.country_id) query = query.eq('main_country_id', filters.country_id)
-
-  // Фильтр по специальности: сначала получаем ID университетов
-  if (filters?.major_id) {
-    const ids = await getUniversityIdsByMajor(filters.major_id)
-    if (ids.length === 0) return []
-    query = query.in('id', ids)
-  }
+  if (majorUniversityIds) query = query.in('id', majorUniversityIds)
 
   const { data, error } = await query
   if (error) return []
 
+  // Фильтруем по региону на стороне клиента
   let result = data ?? []
-  if (filters?.region && !filters?.country_id) {
-    result = result.filter(u => u.country?.region === filters.region)
+  if (filters?.region) {
+    result = result.filter((u: any) => u.country?.region === filters.region)
   }
 
   return result

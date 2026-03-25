@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
+import { motion } from 'framer-motion'
 
 interface RankedUniversity {
   id: string
@@ -84,27 +85,28 @@ export default function RankingsPage() {
     universities.map(u => u.ranking.year)
   )).sort((a, b) => b - a)
 
+  const activeSource = sources.find(s => s.id === selectedSource)
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 p-6">
+    <main className="min-h-screen bg-[#030712] p-6">
       <div className="max-w-4xl mx-auto">
 
-        <div className="text-center text-white mb-8">
-          <h1 className="text-4xl font-bold mb-2">Рейтинги университетов</h1>
-          <p className="text-blue-300">Мировые и национальные рейтинги из авторитетных источников</p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-1">Рейтинги</h1>
+          <p className="text-slate-500 text-sm">Мировые и национальные рейтинги из авторитетных источников</p>
         </div>
 
-        {/* Фильтры */}
-        <div className="flex flex-wrap gap-3 mb-6">
-          {/* Источник */}
-          <div className="flex flex-wrap gap-2">
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <div className="flex flex-wrap gap-1.5">
             {sources.map(s => (
               <button
                 key={s.id}
                 onClick={() => setSelectedSource(s.id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition ${
                   selectedSource === s.id
-                    ? 'bg-white text-slate-900'
-                    : 'bg-white/10 text-blue-300 hover:bg-white/20 border border-white/10'
+                    ? 'bg-indigo-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.3)]'
+                    : 'bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
                 }`}
               >
                 {s.name}
@@ -112,10 +114,9 @@ export default function RankingsPage() {
             ))}
           </div>
 
-          {/* Год */}
           {years.length > 1 && (
             <select
-              className="bg-white/10 border border-white/20 text-white rounded-full px-4 py-2 text-sm"
+              className="bg-white/5 border border-white/10 text-slate-300 rounded-xl px-4 py-1.5 text-sm focus:outline-none [&>option]:bg-[#0f1629]"
               value={selectedYear}
               onChange={e => setSelectedYear(e.target.value)}
             >
@@ -126,67 +127,72 @@ export default function RankingsPage() {
             </select>
           )}
 
-          {selectedSource && sources.find(s => s.id === selectedSource)?.website_url && (
+          {activeSource?.website_url && (
             <a
-              href={sources.find(s => s.id === selectedSource)!.website_url!}
+              href={activeSource.website_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white/10 text-blue-300 hover:text-white text-sm px-4 py-2 rounded-full border border-white/10 transition ml-auto"
+              className="ml-auto text-xs text-slate-500 hover:text-indigo-400 transition flex items-center gap-1"
             >
               Официальный сайт ↗
             </a>
           )}
         </div>
 
-        {/* Таблица */}
+        {/* Table */}
         {loading ? (
-          <div className="flex items-center justify-center py-16 gap-3 text-white">
-            <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-            <p>Загрузка...</p>
+          <div className="flex items-center justify-center py-20 gap-3">
+            <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+            <p className="text-slate-400">Загрузка...</p>
           </div>
         ) : universities.length === 0 ? (
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-10 text-center text-blue-300">
-            <p className="text-lg mb-1">Нет данных</p>
-            <p className="text-sm opacity-70">Выбери другой источник рейтинга</p>
+          <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-12 text-center">
+            <p className="text-slate-400 text-lg mb-1">Нет данных</p>
+            <p className="text-slate-600 text-sm">Выбери другой источник рейтинга</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {universities.map((uni, index) => (
-              <Link key={`${uni.id}-${index}`} href={`/universities/${uni.id}`}>
-                <div className="flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 transition group">
+              <motion.div
+                key={`${uni.id}-${index}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: index * 0.015 }}
+              >
+                <Link href={`/universities/${uni.id}`}>
+                  <div className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-indigo-500/20 rounded-xl p-3.5 transition group">
 
-                  {/* Позиция */}
-                  <div className={`w-12 text-center font-bold text-lg shrink-0 ${
-                    uni.ranking.position <= 10 ? 'text-yellow-400' :
-                    uni.ranking.position <= 50 ? 'text-blue-300' :
-                    'text-white/50'
-                  }`}>
-                    #{uni.ranking.position}
+                    {/* Position */}
+                    <div className={`w-10 text-center font-bold text-sm shrink-0 ${
+                      uni.ranking.position <= 10 ? 'text-amber-400' :
+                      uni.ranking.position <= 50 ? 'text-indigo-400' :
+                      'text-slate-600'
+                    }`}>
+                      #{uni.ranking.position}
+                    </div>
+
+                    {/* Photo */}
+                    <div className="w-9 h-9 rounded-lg overflow-hidden bg-white/5 shrink-0">
+                      {uni.photo_url ? (
+                        <Image src={uni.photo_url} alt={uni.name} width={36} height={36} className="object-cover w-full h-full" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-base opacity-20">🎓</div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium group-hover:text-indigo-300 transition truncate">{uni.name}</p>
+                      <p className="text-slate-600 text-xs">
+                        {uni.country?.flag_icon} {[uni.city?.name, uni.country?.name].filter(Boolean).join(', ')}
+                      </p>
+                    </div>
+
+                    <div className="text-slate-700 text-xs shrink-0">{uni.ranking.year}</div>
+                    <div className="text-slate-700 group-hover:text-slate-400 transition shrink-0 text-sm">→</div>
                   </div>
-
-                  {/* Фото */}
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10 shrink-0">
-                    {uni.photo_url ? (
-                      <Image src={uni.photo_url} alt={uni.name} width={48} height={48} className="object-cover w-full h-full" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xl opacity-30">🎓</div>
-                    )}
-                  </div>
-
-                  {/* Инфо */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-semibold group-hover:text-blue-300 transition truncate">{uni.name}</p>
-                    <p className="text-blue-300/70 text-sm">
-                      {uni.country?.flag_icon} {uni.city?.name && `${uni.city.name}, `}{uni.country?.name}
-                    </p>
-                  </div>
-
-                  {/* Год */}
-                  <div className="text-white/30 text-sm shrink-0">{uni.ranking.year}</div>
-
-                  <div className="text-white/30 group-hover:text-white/60 transition shrink-0">→</div>
-                </div>
-              </Link>
+                </Link>
+              </motion.div>
             ))}
           </div>
         )}
