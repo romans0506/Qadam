@@ -80,74 +80,107 @@ export default function TestsPage() {
     return getTestStatus(prevTest.id) === 'completed'
   }
 
+  const completedCount = tests.filter(t => getTestStatus(t.id) === 'completed').length
+
   if (loading) return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 flex items-center justify-center">
-      <p className="text-white text-xl">Загрузка...</p>
+    <main className="min-h-screen bg-[#030712] flex items-center justify-center">
+      <div className="flex items-center gap-3 text-white">
+        <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-400">Загрузка...</p>
+      </div>
     </main>
   )
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 p-6">
+    <main className="min-h-screen bg-[#030712] p-6">
       <div className="max-w-2xl mx-auto">
 
-        <div className="text-center text-white mb-8">
-          <h1 className="text-4xl font-bold mb-2">Тесты 🧠</h1>
-          <p className="text-blue-200">Пройди тесты чтобы узнать своё направление</p>
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-1">Тесты</h1>
+          <p className="text-slate-500 text-sm">Пройди тесты, чтобы узнать своё направление</p>
+          {tests.length > 0 && (
+            <div className="flex items-center gap-3 mt-4">
+              <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
+                  style={{ width: `${(completedCount / tests.length) * 100}%` }}
+                />
+              </div>
+              <span className="text-slate-500 text-xs shrink-0">{completedCount}/{tests.length}</span>
+            </div>
+          )}
         </div>
 
         {tests.length === 0 ? (
-          <div className="bg-white rounded-2xl p-8 text-center text-gray-500">
-            <p className="text-lg">Тесты скоро появятся!</p>
+          <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-10 text-center">
+            <p className="text-slate-400 text-lg">Тесты скоро появятся!</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {tests.map((test, index) => {
               const status = getTestStatus(test.id)
               const unlocked = isUnlocked(index)
+              const isCompleted = status === 'completed'
 
               return (
                 <div
                   key={test.id}
-                  className={`bg-white rounded-2xl p-6 shadow-lg ${!unlocked ? 'opacity-60' : ''}`}
+                  className={`relative bg-white/[0.03] border rounded-2xl p-5 transition-all duration-200 ${
+                    isCompleted
+                      ? 'border-emerald-500/20 bg-emerald-500/[0.03]'
+                      : unlocked
+                      ? 'border-indigo-500/20 hover:border-indigo-500/40 hover:bg-white/[0.05] hover:shadow-[0_0_20px_rgba(99,102,241,0.08)]'
+                      : 'border-white/[0.05] opacity-50'
+                  }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
-                        status === 'completed' ? 'bg-green-100 text-green-700' :
-                        unlocked ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-400'
-                      }`}>
-                        {status === 'completed' ? '✓' : index + 1}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-gray-800">{test.title}</h3>
-                        {test.description && (
-                          <p className="text-gray-500 text-sm">{test.description}</p>
-                        )}
-                      </div>
+                  <div className="flex items-center gap-4">
+                    {/* Step indicator */}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                      isCompleted
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : unlocked
+                        ? 'bg-indigo-500/20 text-indigo-400'
+                        : 'bg-white/5 text-slate-600'
+                    }`}>
+                      {isCompleted ? '✓' : unlocked ? index + 1 : '🔒'}
                     </div>
-                    <div className="flex flex-col gap-2 items-end">
-                      {status === 'completed' ? (
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`font-semibold text-sm ${
+                        isCompleted ? 'text-emerald-300' : unlocked ? 'text-white' : 'text-slate-600'
+                      }`}>
+                        {test.title}
+                      </h3>
+                      {test.description && (
+                        <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">{test.description}</p>
+                      )}
+                    </div>
+
+                    {/* Action */}
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      {isCompleted ? (
                         <>
-                          <span className="bg-green-50 text-green-700 text-sm px-3 py-1 rounded-full">
-                            Пройден ✓
+                          <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs px-3 py-1 rounded-lg">
+                            Пройден
                           </span>
                           <button
                             onClick={() => retakeTest(test.id)}
-                            className="text-blue-500 text-xs hover:underline"
+                            className="text-slate-500 hover:text-slate-300 text-xs transition"
                           >
-                            🔄 Пройти заново
+                            Пройти заново
                           </button>
                         </>
                       ) : unlocked ? (
                         <button
                           onClick={() => router.push(`/tests/${test.id}`)}
-                          className="bg-blue-600 text-white text-sm px-4 py-2 rounded-full hover:bg-blue-700 transition"
+                          className="bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-[0_0_12px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]"
                         >
                           Начать →
                         </button>
                       ) : (
-                        <span className="text-gray-400 text-sm">🔒 Заблокирован</span>
+                        <span className="text-slate-600 text-xs">Заблокировано</span>
                       )}
                     </div>
                   </div>

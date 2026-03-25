@@ -80,83 +80,88 @@ export default function Profile() {
   }
 
   if (!userId) return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 flex items-center justify-center">
-      <p className="text-white text-xl">Загрузка...</p>
+    <main className="min-h-screen bg-[#030712] flex items-center justify-center">
+      <div className="flex items-center gap-3">
+        <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-400">Загрузка...</p>
+      </div>
     </main>
   )
 
   const statusConfig: Record<string, { label: string; color: string }> = {
-    free: { label: 'Базовый', color: 'bg-gray-100 text-gray-600' },
-    premium: { label: '⭐ Premium', color: 'bg-yellow-100 text-yellow-700' },
-    pro: { label: '🚀 Pro', color: 'bg-purple-100 text-purple-700' },
+    free: { label: 'Базовый', color: 'bg-slate-500/10 border border-slate-500/20 text-slate-400' },
+    premium: { label: 'Premium', color: 'bg-amber-500/10 border border-amber-500/20 text-amber-400' },
+    pro: { label: 'Pro', color: 'bg-violet-500/10 border border-violet-500/20 text-violet-400' },
   }
 
   const status = statusConfig[profile.status ?? 'free'] ?? statusConfig.free
 
+  const inputClass = 'w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition'
+  const sectionClass = 'bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 mb-4'
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 p-6">
+    <main className="min-h-screen bg-[#030712] p-6">
       <div className="max-w-2xl mx-auto">
 
-        {/* Шапка профиля */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-4 text-center">
-          <div className="relative inline-block mb-4">
-            <Image
-              src={profile.avatar_url || '/avatar.png'}
-              alt="avatar"
-              width={96}
-              height={96}
-              className="w-24 h-24 rounded-full border-4 border-blue-100 object-cover"
-            />
-            <span className={`absolute -bottom-1 -right-1 text-xs px-2 py-0.5 rounded-full font-medium ${status.color}`}>
-              {status.label}
-            </span>
+        {/* Profile header card */}
+        <div className={`${sectionClass} mb-4`}>
+          <div className="flex items-start gap-5">
+            <div className="relative shrink-0">
+              <Image
+                src={profile.avatar_url || '/avatar.png'}
+                alt="avatar"
+                width={72}
+                height={72}
+                className="w-18 h-18 rounded-2xl object-cover border border-white/10"
+                style={{ width: 72, height: 72 }}
+              />
+              <span className={`absolute -bottom-1 -right-1 text-xs px-2 py-0.5 rounded-lg font-medium ${status.color}`}>
+                {status.label}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-bold text-white">
+                {profile.full_name || userEmail || 'Профиль'}
+              </h1>
+              {profile.nickname && (
+                <p className="text-indigo-400 text-sm font-medium">@{profile.nickname}</p>
+              )}
+              {(profile.school || profile.city || profile.study_country) && (
+                <p className="text-slate-500 text-xs mt-1">
+                  {[profile.school, profile.city, profile.study_country].filter(Boolean).join(' · ')}
+                </p>
+              )}
+              {profile.personality_type && (
+                <span className="inline-block mt-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs px-2.5 py-1 rounded-lg">
+                  {profile.personality_type}
+                </span>
+              )}
+              {memberSince && (
+                <p className="text-slate-600 text-xs mt-2">В Qadam с {memberSince}</p>
+              )}
+            </div>
+            <button
+              onClick={() => setEditing(!editing)}
+              className="shrink-0 text-xs text-slate-500 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg transition"
+            >
+              {editing ? 'Отмена' : 'Изменить'}
+            </button>
           </div>
-
-          <h1 className="text-2xl font-bold text-gray-800">
-            {profile.full_name || userEmail || 'Профиль'}
-          </h1>
-
-          {profile.nickname && (
-            <p className="text-blue-500 font-medium">@{profile.nickname}</p>
-          )}
-
-          {(profile.school || profile.city || profile.study_country) && (
-            <p className="text-gray-500 text-sm mt-1">
-              {[profile.school, profile.city, profile.study_country].filter(Boolean).join(' • ')}
-            </p>
-          )}
-
-          {profile.personality_type && (
-            <span className="inline-block mt-2 bg-indigo-50 text-indigo-700 text-sm px-3 py-1 rounded-full">
-              🧠 {profile.personality_type}
-            </span>
-          )}
-
-          {memberSince && (
-            <p className="text-gray-400 text-xs mt-2">В Qadam с {memberSince}</p>
-          )}
-
-          <button
-            onClick={() => setEditing(!editing)}
-            className="mt-4 text-blue-600 text-sm font-medium hover:underline"
-          >
-            {editing ? 'Отмена' : '✏️ Редактировать профиль'}
-          </button>
         </div>
 
-        {/* Биография */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-4">
-          <h2 className="text-xl font-bold text-gray-800 mb-3">📝 О себе</h2>
+        {/* Bio */}
+        <div className={sectionClass}>
+          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">О себе</h2>
           {editing ? (
             <textarea
-              className="w-full border rounded-lg p-3 text-gray-800 h-24 resize-none"
+              className={`${inputClass} h-24 resize-none`}
               placeholder="Расскажи о себе, своих целях и интересах..."
               value={profile.bio || ''}
               onChange={e => setProfile({ ...profile, bio: e.target.value })}
             />
           ) : (
-            <p className="text-gray-600 leading-relaxed">
-              {profile.bio || 'Биография не заполнена'}
+            <p className="text-slate-400 text-sm leading-relaxed">
+              {profile.bio || <span className="text-slate-600">Биография не заполнена</span>}
             </p>
           )}
         </div>
@@ -202,20 +207,20 @@ export default function Profile() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl transition mt-4 shadow-[0_0_20px_rgba(99,102,241,0.3)]"
           >
-            {saving ? 'Сохранение...' : 'Сохранить профиль ✓'}
+            {saving ? 'Сохранение...' : 'Сохранить профиль'}
           </button>
         )}
 
         {saved && (
-          <p className="text-center text-green-400 font-medium mt-2">✅ Профиль сохранён!</p>
+          <p className="text-center text-emerald-400 text-sm font-medium mt-3">Профиль сохранён</p>
         )}
 
         <div className="text-center mt-8 flex justify-center gap-6">
-          <Link href="/" className="text-blue-200 hover:text-white underline">Главная</Link>
-          <Link href="/dashboard" className="text-blue-200 hover:text-white underline">Мои шансы</Link>
-          <Link href="/calendar" className="text-blue-200 hover:text-white underline">Календарь</Link>
+          <Link href="/" className="text-slate-600 hover:text-slate-300 text-sm transition">Главная</Link>
+          <Link href="/dashboard" className="text-slate-600 hover:text-slate-300 text-sm transition">Мои шансы</Link>
+          <Link href="/calendar" className="text-slate-600 hover:text-slate-300 text-sm transition">Календарь</Link>
         </div>
 
       </div>

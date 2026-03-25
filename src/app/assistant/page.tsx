@@ -403,49 +403,63 @@ export default function AssistantPage() {
   ]
 
   if (initializing) return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 flex items-center justify-center">
+    <main className="min-h-screen bg-[#030712] flex items-center justify-center">
       <div className="text-center text-white">
-        <div className="text-4xl mb-4">🤖</div>
-        <p className="text-xl">AI анализирует твой профиль...</p>
+        <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-2xl">✨</div>
+        <p className="text-slate-300 text-lg font-medium">AI анализирует твой профиль...</p>
+        <p className="text-slate-500 text-sm mt-1">Это займёт несколько секунд</p>
       </div>
     </main>
   )
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-950 to-indigo-900 flex flex-col">
-      <div className="max-w-3xl mx-auto w-full flex flex-col h-screen p-4">
+    <main className="min-h-screen bg-[#030712] flex flex-col">
+      <div className="max-w-3xl mx-auto w-full flex flex-col h-screen px-4 pb-4">
 
-        {/* Заголовок */}
-        <div className="text-center text-white py-4">
-          <h1 className="text-2xl font-bold">🤖 AI Помощник</h1>
-          <p className="text-blue-200 text-sm">Персональный навигатор по поступлению</p>
+        {/* Header */}
+        <div className="flex items-center gap-3 py-4 border-b border-white/[0.06] mb-4">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-base shrink-0">
+            ✨
+          </div>
+          <div>
+            <h1 className="text-white font-bold text-base leading-tight">Qadam AI</h1>
+            <p className="text-slate-500 text-xs">Персональный навигатор</p>
+          </div>
+          <div className="ml-auto flex items-center gap-1.5">
+            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs text-slate-500">онлайн</span>
+          </div>
         </div>
 
-        {/* Сообщения */}
-        <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto space-y-3 pb-4">
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+              {msg.role === 'assistant' && (
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-sm shrink-0 mr-2 mt-1">
+                  ✨
+                </div>
+              )}
+              <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                 msg.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-800 shadow-lg'
+                  ? 'bg-indigo-500 text-white rounded-br-sm'
+                  : 'bg-white/[0.06] border border-white/[0.08] text-slate-200 rounded-bl-sm'
               }`}>
-                {msg.role === 'assistant' && (
-                  <p className="text-xs text-blue-500 font-medium mb-1">🤖 Qadam AI</p>
-                )}
                 <p className="text-sm leading-relaxed whitespace-pre-line">{msg.content}</p>
               </div>
             </div>
           ))}
 
           {loading && (
-            <div className="flex justify-start">
-              <div className="bg-white rounded-2xl px-4 py-3 shadow-lg">
-                <p className="text-xs text-blue-500 font-medium mb-1">🤖 Qadam AI</p>
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="flex justify-start items-start gap-2">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-sm shrink-0 mt-1">
+                ✨
+              </div>
+              <div className="bg-white/[0.06] border border-white/[0.08] rounded-2xl rounded-bl-sm px-4 py-3">
+                <div className="flex gap-1.5 items-center h-5">
+                  <span className="w-2 h-2 bg-indigo-400 rounded-full dot-1" />
+                  <span className="w-2 h-2 bg-indigo-400 rounded-full dot-2" />
+                  <span className="w-2 h-2 bg-indigo-400 rounded-full dot-3" />
                 </div>
               </div>
             </div>
@@ -453,14 +467,14 @@ export default function AssistantPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Быстрые вопросы */}
+        {/* Quick questions */}
         {messages.length <= 1 && (
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-wrap gap-1.5 mb-3">
             {quickQuestions.map(q => (
               <button
                 key={q}
-                onClick={() => { setInput(q); }}
-                className="bg-blue-800 text-blue-100 text-xs px-3 py-1.5 rounded-full hover:bg-blue-700 transition"
+                onClick={() => setInput(q)}
+                className="bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:border-indigo-500/30 hover:bg-indigo-500/10 text-xs px-3 py-1.5 rounded-xl transition"
               >
                 {q}
               </button>
@@ -468,24 +482,26 @@ export default function AssistantPage() {
           </div>
         )}
 
-        {/* Поле ввода */}
-        <div className="flex gap-2 pb-2">
-          <input
-            type="text"
-            placeholder="Задай вопрос AI помощнику..."
-            className="flex-1 bg-white rounded-2xl px-4 py-3 text-gray-800 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && sendMessage()}
-            disabled={loading}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={loading || !input.trim()}
-            className="bg-blue-600 text-white px-5 py-3 rounded-2xl hover:bg-blue-700 transition disabled:opacity-40 font-bold"
-          >
-            →
-          </button>
+        {/* Input — AI gradient border */}
+        <div className="ai-border">
+          <div className="relative bg-[#030712] rounded-[calc(1rem-1px)] flex gap-2 p-2">
+            <input
+              type="text"
+              placeholder="Задай вопрос AI помощнику..."
+              className="flex-1 bg-transparent px-3 py-2 text-white placeholder-slate-500 text-sm focus:outline-none"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && sendMessage()}
+              disabled={loading}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={loading || !input.trim()}
+              className="bg-indigo-500 hover:bg-indigo-400 disabled:opacity-30 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl text-sm font-semibold transition shrink-0"
+            >
+              →
+            </button>
+          </div>
         </div>
 
       </div>
