@@ -26,20 +26,19 @@ export default function SaveUniversityButton({ universityId, universityName }: P
   }, [])
 
   async function checkIfSaved(uid: string) {
-  const supabase = createSupabaseBrowserClient()
-  const { data } = await supabase
-    .from('user_saved_universities')
-    .select('id')
-    .eq('user_id', uid)
-    .eq('university_id', universityId)
-    .limit(1)
-  setSaved(data !== null && data.length > 0)
-}
+    const supabase = createSupabaseBrowserClient()
+    const { data } = await supabase
+      .from('user_saved_universities')
+      .select('id')
+      .eq('user_id', uid)
+      .eq('university_id', universityId)
+      .limit(1)
+    setSaved(data !== null && data.length > 0)
+  }
 
   async function handleSave() {
     if (!userId) { router.push('/login'); return }
     setLoading(true)
-
     if (saved) {
       await unsaveUniversity(userId, universityId)
       setSaved(false)
@@ -48,7 +47,6 @@ export default function SaveUniversityButton({ universityId, universityName }: P
       await generateCalendarFromUniversity(userId, universityId)
       setSaved(true)
     }
-
     setLoading(false)
   }
 
@@ -56,15 +54,15 @@ export default function SaveUniversityButton({ universityId, universityName }: P
     <button
       onClick={handleSave}
       disabled={loading}
-      className={`w-full font-bold py-3 rounded-xl transition ${
+      className={`w-full font-semibold py-3 rounded-xl transition text-sm ${
         saved
-          ? 'bg-green-50 text-green-700 border-2 border-green-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200'
-          : 'bg-blue-600 text-white hover:bg-blue-700'
-      }`}
+          ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400'
+          : 'bg-indigo-500 hover:bg-indigo-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.25)] hover:shadow-[0_0_30px_rgba(99,102,241,0.4)]'
+      } disabled:opacity-50`}
     >
       {loading ? 'Загрузка...' :
-       saved ? '✅ Сохранено — нажми чтобы убрать' :
-       '🔖 Сохранить и добавить дедлайны в календарь'}
+       saved ? 'Сохранено — нажми чтобы убрать' :
+       'Сохранить и добавить дедлайны в календарь'}
     </button>
   )
 }

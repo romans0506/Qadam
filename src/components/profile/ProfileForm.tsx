@@ -11,98 +11,68 @@ interface Props {
   onChange: (profile: Partial<UserProfile>) => void
 }
 
+const inp = 'w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition disabled:opacity-40 disabled:cursor-default [&>option]:bg-[#0f1629]'
+const lbl = 'block text-slate-500 text-xs mb-1.5'
+
 export default function ProfileForm({ profile, editing, saved, saving, onEdit, onSave, onChange }: Props) {
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-lg">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-gray-800">Личная информация</h2>
-        <button onClick={onEdit} className="text-blue-600 font-medium hover:underline">
-          {editing ? 'Отмена' : '✏️ Изменить'}
+    <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 mt-4">
+      <div className="flex justify-between items-center mb-5">
+        <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Личная информация</h2>
+        <button onClick={onEdit} className="text-xs text-slate-500 hover:text-indigo-400 transition font-medium">
+          {editing ? 'Отмена' : 'Изменить'}
         </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3.5">
         <div>
-          <label className="block text-gray-500 text-sm mb-1">Полное имя</label>
-          <input
-            className="w-full border rounded-lg p-3 text-gray-800 disabled:bg-gray-50"
-            value={profile.full_name || ''}
-            disabled={!editing}
-            onChange={e => onChange({...profile, full_name: e.target.value})}
-          />
+          <label className={lbl}>Полное имя</label>
+          <input className={inp} value={profile.full_name || ''} disabled={!editing}
+            onChange={e => onChange({ ...profile, full_name: e.target.value })} />
         </div>
 
         <div>
-          <label className="block text-gray-500 text-sm mb-1">Никнейм</label>
-          <input
-            className="w-full border rounded-lg p-3 text-gray-800 disabled:bg-gray-50"
-            placeholder="например: aibek_kz"
-            value={profile.nickname || ''}
-            disabled={!editing}
-            onChange={e => onChange({...profile, nickname: e.target.value})}
-          />
+          <label className={lbl}>Никнейм</label>
+          <input className={inp} placeholder="например: aibek_kz" value={profile.nickname || ''} disabled={!editing}
+            onChange={e => onChange({ ...profile, nickname: e.target.value })} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={lbl}>Город</label>
+            <input className={inp} placeholder="Алматы" value={profile.city || ''} disabled={!editing}
+              onChange={e => onChange({ ...profile, city: e.target.value })} />
+          </div>
+          <div>
+            <label className={lbl}>Класс</label>
+            <select className={inp} value={profile.grade || ''} disabled={!editing}
+              onChange={e => onChange({ ...profile, grade: parseInt(e.target.value) })}>
+              <option value="">— класс</option>
+              {[8, 9, 10, 11].map(g => <option key={g} value={g}>{g} класс</option>)}
+            </select>
+          </div>
         </div>
 
         <div>
-          <label className="block text-gray-500 text-sm mb-1">Город</label>
-          <input
-            className="w-full border rounded-lg p-3 text-gray-800 disabled:bg-gray-50"
-            placeholder="Алматы"
-            value={profile.city || ''}
-            disabled={!editing}
-            onChange={e => onChange({...profile, city: e.target.value})}
-          />
+          <label className={lbl}>Школа</label>
+          <input className={inp} placeholder="НИШ Алматы" value={profile.school || ''} disabled={!editing}
+            onChange={e => onChange({ ...profile, school: e.target.value })} />
         </div>
 
         <div>
-          <label className="block text-gray-500 text-sm mb-1">Школа</label>
-          <input
-            className="w-full border rounded-lg p-3 text-gray-800 disabled:bg-gray-50"
-            placeholder="НИШ Алматы"
-            value={profile.school || ''}
-            disabled={!editing}
-            onChange={e => onChange({...profile, school: e.target.value})}
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-500 text-sm mb-1">Класс</label>
-          <select
-            className="w-full border rounded-lg p-3 text-gray-800 disabled:bg-gray-50"
-            value={profile.grade || ''}
-            disabled={!editing}
-            onChange={e => onChange({...profile, grade: parseInt(e.target.value)})}
-          >
-            <option value="">Выбери класс</option>
-            {[8,9,10,11].map(g => <option key={g} value={g}>{g} класс</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-gray-500 text-sm mb-1">О себе</label>
-          <textarea
-            className="w-full border rounded-lg p-3 text-gray-800 disabled:bg-gray-50 h-24"
-            placeholder="Расскажи о себе..."
-            value={profile.bio || ''}
-            disabled={!editing}
-            onChange={e => onChange({...profile, bio: e.target.value})}
-          />
+          <label className={lbl}>О себе</label>
+          <textarea className={`${inp} h-20 resize-none`} placeholder="Расскажи о себе..." value={profile.bio || ''} disabled={!editing}
+            onChange={e => onChange({ ...profile, bio: e.target.value })} />
         </div>
       </div>
 
       {editing && (
-        <button
-          onClick={onSave}
-          disabled={saving}
-          className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition mt-6 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
+        <button onClick={onSave} disabled={saving}
+          className="w-full mt-5 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition text-sm">
           {saving ? 'Сохранение...' : 'Сохранить'}
         </button>
       )}
-
-      {saved && (
-        <p className="text-green-500 text-center mt-4 font-medium">✅ Сохранено!</p>
-      )}
+      {saved && <p className="text-emerald-400 text-center text-xs mt-3">Сохранено</p>}
     </div>
   )
 }

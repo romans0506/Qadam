@@ -12,29 +12,29 @@ interface TestResult {
 }
 
 const mbtiDescriptions: Record<string, { title: string; color: string }> = {
-  INTJ: { title: 'Стратег', color: 'bg-indigo-50 text-indigo-700' },
-  INTP: { title: 'Логик', color: 'bg-indigo-50 text-indigo-700' },
-  ENTJ: { title: 'Командир', color: 'bg-purple-50 text-purple-700' },
-  ENTP: { title: 'Полемист', color: 'bg-purple-50 text-purple-700' },
-  INFJ: { title: 'Активист', color: 'bg-green-50 text-green-700' },
-  INFP: { title: 'Посредник', color: 'bg-green-50 text-green-700' },
-  ENFJ: { title: 'Протагонист', color: 'bg-teal-50 text-teal-700' },
-  ENFP: { title: 'Борец', color: 'bg-teal-50 text-teal-700' },
-  ISTJ: { title: 'Администратор', color: 'bg-blue-50 text-blue-700' },
-  ISFJ: { title: 'Защитник', color: 'bg-blue-50 text-blue-700' },
-  ESTJ: { title: 'Менеджер', color: 'bg-cyan-50 text-cyan-700' },
-  ESFJ: { title: 'Консул', color: 'bg-cyan-50 text-cyan-700' },
-  ISTP: { title: 'Виртуоз', color: 'bg-orange-50 text-orange-700' },
-  ISFP: { title: 'Артист', color: 'bg-orange-50 text-orange-700' },
-  ESTP: { title: 'Делец', color: 'bg-red-50 text-red-700' },
-  ESFP: { title: 'Развлекатель', color: 'bg-red-50 text-red-700' },
+  INTJ: { title: 'Стратег', color: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' },
+  INTP: { title: 'Логик', color: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' },
+  ENTJ: { title: 'Командир', color: 'bg-violet-500/10 border-violet-500/20 text-violet-400' },
+  ENTP: { title: 'Полемист', color: 'bg-violet-500/10 border-violet-500/20 text-violet-400' },
+  INFJ: { title: 'Активист', color: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' },
+  INFP: { title: 'Посредник', color: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' },
+  ENFJ: { title: 'Протагонист', color: 'bg-teal-500/10 border-teal-500/20 text-teal-400' },
+  ENFP: { title: 'Борец', color: 'bg-teal-500/10 border-teal-500/20 text-teal-400' },
+  ISTJ: { title: 'Администратор', color: 'bg-blue-500/10 border-blue-500/20 text-blue-400' },
+  ISFJ: { title: 'Защитник', color: 'bg-blue-500/10 border-blue-500/20 text-blue-400' },
+  ESTJ: { title: 'Менеджер', color: 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400' },
+  ESFJ: { title: 'Консул', color: 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400' },
+  ISTP: { title: 'Виртуоз', color: 'bg-amber-500/10 border-amber-500/20 text-amber-400' },
+  ISFP: { title: 'Артист', color: 'bg-amber-500/10 border-amber-500/20 text-amber-400' },
+  ESTP: { title: 'Делец', color: 'bg-orange-500/10 border-orange-500/20 text-orange-400' },
+  ESFP: { title: 'Развлекатель', color: 'bg-orange-500/10 border-orange-500/20 text-orange-400' },
 }
 
 const interestDescriptions: Record<string, { title: string; color: string }> = {
-  analytical: { title: 'Аналитик 🔬', color: 'bg-blue-50 text-blue-700' },
-  social: { title: 'Помощник 🤝', color: 'bg-green-50 text-green-700' },
-  creative: { title: 'Творец 🎨', color: 'bg-purple-50 text-purple-700' },
-  managerial: { title: 'Организатор 📋', color: 'bg-orange-50 text-orange-700' },
+  analytical: { title: 'Аналитик', color: 'bg-blue-500/10 border-blue-500/20 text-blue-400' },
+  social: { title: 'Помощник', color: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' },
+  creative: { title: 'Творец', color: 'bg-violet-500/10 border-violet-500/20 text-violet-400' },
+  managerial: { title: 'Организатор', color: 'bg-amber-500/10 border-amber-500/20 text-amber-400' },
 }
 
 export default function TestResults({ userId }: { userId: string }) {
@@ -55,53 +55,43 @@ export default function TestResults({ userId }: { userId: string }) {
 
   function getResultDisplay(result: TestResult) {
     const code = result.result_code
-    if (mbtiDescriptions[code]) {
-      return {
-        label: `${code} — ${mbtiDescriptions[code].title}`,
-        color: mbtiDescriptions[code].color
-      }
-    }
-    if (interestDescriptions[code]) {
-      return {
-        label: interestDescriptions[code].title,
-        color: interestDescriptions[code].color
-      }
-    }
-    if (code === 'strong') return { label: '💪 Сильный профиль', color: 'bg-green-50 text-green-700' }
-    if (code === 'average') return { label: '📈 Средний уровень', color: 'bg-yellow-50 text-yellow-700' }
-    if (code === 'needs_improvement') return { label: '📚 Нужна практика', color: 'bg-red-50 text-red-700' }
-    return { label: code, color: 'bg-gray-50 text-gray-700' }
+    if (mbtiDescriptions[code]) return { label: `${code} — ${mbtiDescriptions[code].title}`, color: mbtiDescriptions[code].color }
+    if (interestDescriptions[code]) return { label: interestDescriptions[code].title, color: interestDescriptions[code].color }
+    if (code === 'strong') return { label: 'Сильный профиль', color: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' }
+    if (code === 'average') return { label: 'Средний уровень', color: 'bg-amber-500/10 border-amber-500/20 text-amber-400' }
+    if (code === 'needs_improvement') return { label: 'Нужна практика', color: 'bg-red-500/10 border-red-500/20 text-red-400' }
+    return { label: code, color: 'bg-white/5 border-white/10 text-slate-400' }
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-lg mt-4">
+    <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 mt-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-800">🧠 Результаты тестов</h2>
-        <Link href="/tests" className="text-blue-600 text-sm hover:underline">
+        <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Результаты тестов</h2>
+        <Link href="/tests" className="text-xs text-slate-500 hover:text-indigo-400 transition">
           К тестам →
         </Link>
       </div>
 
       {results.length === 0 ? (
-        <div className="text-center py-4">
-          <p className="text-gray-400 text-sm">Тесты ещё не пройдены</p>
-          <Link href="/tests" className="text-blue-600 text-sm hover:underline mt-1 inline-block">
+        <div className="text-center py-5">
+          <p className="text-slate-600 text-sm mb-2">Тесты ещё не пройдены</p>
+          <Link href="/tests" className="text-indigo-400 hover:text-indigo-300 text-xs transition">
             Пройти тесты →
           </Link>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {results.map(result => {
             const display = getResultDisplay(result)
             return (
-              <div key={result.id} className="flex items-center justify-between p-3 border rounded-xl">
+              <div key={result.id} className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/[0.06] rounded-xl">
                 <div>
-                  <p className="font-medium text-gray-700 text-sm">{result.test?.title}</p>
-                  <p className="text-gray-400 text-xs">
+                  <p className="text-white text-sm font-medium">{result.test?.title}</p>
+                  <p className="text-slate-600 text-xs mt-0.5">
                     {new Date(result.created_at).toLocaleDateString('ru-RU')}
                   </p>
                 </div>
-                <span className={`text-sm px-3 py-1 rounded-full font-medium ${display.color}`}>
+                <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${display.color}`}>
                   {display.label}
                 </span>
               </div>
