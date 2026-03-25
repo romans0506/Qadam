@@ -18,10 +18,10 @@ export default function SaveUniversityButton({ universityId, universityName }: P
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) return
-      setUserId(data.user.id)
-      checkIfSaved(data.user.id)
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session?.user) return
+      setUserId(data.session?.user.id)
+      checkIfSaved(data.session?.user.id)
     })
   }, [])
 

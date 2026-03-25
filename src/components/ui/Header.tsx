@@ -21,7 +21,7 @@ export default function Header() {
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null))
+    supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user?.email ?? null))
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setEmail(session?.user?.email ?? null)
     })

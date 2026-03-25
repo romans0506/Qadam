@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, Trophy, GraduationCap, Building2, Globe, ArrowLeft } from 'lucide-react'
+import { MapPin, Trophy, GraduationCap, Building2, Globe, ArrowLeft, CalendarDays } from 'lucide-react'
 import { getUniversityById } from '@/services/universityService'
 import SaveUniversityButton from '@/components/universities/SaveUniversityButton'
+import DeadlineCalendarButton from '@/components/universities/DeadlineCalendarButton'
 
 type PageProps = {
   params: Promise<{ id: string }>
@@ -234,6 +235,57 @@ export default async function UniversityDetailPage({ params }: PageProps) {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Deadlines */}
+            {university.deadlines && university.deadlines.length > 0 && (
+              <div className="card p-10">
+                <div className="flex items-center gap-2 mb-8">
+                  <CalendarDays size={15} strokeWidth={1.5} className="text-[var(--text-tertiary)]" />
+                  <span className="t-label">Дедлайны подачи документов</span>
+                </div>
+                <div className="flex flex-col divide-y divide-[var(--border)]">
+                  {university.deadlines
+                    .slice()
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                    .map(d => {
+                      const date   = new Date(d.date)
+                      const now    = new Date()
+                      const days   = Math.ceil((date.getTime() - now.getTime()) / 86_400_000)
+                      const passed = days < 0
+                      return (
+                        <div key={d.id} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium ${passed ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-primary)]'}`}>
+                              {d.type}
+                            </p>
+                            {d.description && (
+                              <p className="t-body text-xs mt-0.5 truncate">{d.description}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 shrink-0">
+                            <div className="text-right">
+                              <p className={`text-sm font-semibold ${passed ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}`}>
+                                {date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </p>
+                              <p className={`text-xs mt-0.5 ${passed ? 'text-[var(--text-quaternary)]' : days <= 30 ? 'text-amber-400' : 'text-[var(--text-tertiary)]'}`}>
+                                {passed ? 'Истёк' : `${days} дн.`}
+                              </p>
+                            </div>
+                            {!passed && (
+                              <DeadlineCalendarButton
+                                universityName={university.name}
+                                deadlineType={d.type}
+                                deadlineDate={d.date}
+                                description={d.description}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
                 </div>
               </div>
             )}

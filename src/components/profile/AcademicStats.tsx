@@ -9,7 +9,7 @@ interface Props {
 }
 
 const FIELDS = [
-  { label: 'GPA', field: 'gpa', min: 1, max: 5, step: 0.1, placeholder: '1.0 — 5.0', isFloat: true },
+  { label: 'GPA', field: 'gpa', min: 0, max: 4, step: 0.1, placeholder: '0 — 4.0', isFloat: true },
   { label: 'ЕНТ', field: 'ent_score', min: 0, max: 140, step: 1, placeholder: '0 — 140', isFloat: false },
   { label: 'IELTS', field: 'ielts_score', min: 0, max: 9, step: 0.5, placeholder: '0 — 9.0', isFloat: true },
   { label: 'SAT', field: 'sat_score', min: 400, max: 1600, step: 10, placeholder: '400 — 1600', isFloat: false },
@@ -41,11 +41,11 @@ export default function AcademicStats({ profile, editing, onChange }: Props) {
     if (isNaN(val)) return
     if (val < min || val > max) {
       setErrors(prev => ({ ...prev, [field]: `${min} — ${max}` }))
-    } else {
-      const newErrors = { ...errors }
-      delete newErrors[field]
-      setErrors(newErrors)
+      return   // ← block saving out-of-range values
     }
+    const newErrors = { ...errors }
+    delete newErrors[field]
+    setErrors(newErrors)
     onChange({ ...profile, [field]: val })
   }
 

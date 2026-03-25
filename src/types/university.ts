@@ -31,6 +31,9 @@ export interface University {
   rankings?: UniversityRanking[]
   campuses?: Campus[]
   majors?: UniversityMajor[]
+  deadlines?: UniversityDeadline[]
+  name_ru?: string | null
+  aliases?: string | null
 }
 
 export interface Campus {
@@ -102,6 +105,15 @@ export interface EducationalEvent {
   url: string | null
   organizer: string | null
   country: string | null
+}
+
+export interface UniversityDeadline {
+  id: string
+  university_id: string
+  major_id: string | null
+  type: string
+  date: string
+  description: string | null
 }
 
 export interface SavedUniversity {

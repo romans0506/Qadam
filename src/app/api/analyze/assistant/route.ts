@@ -29,12 +29,12 @@ export async function POST(req: NextRequest) {
 - Город: ${profile?.city || 'не указан'}
 
 Академические показатели:
-- GPA: ${profile?.gpa || 'не указан'} (шкала 1-5)
-- ЕНТ: ${profile?.ent_score ? `${profile.ent_score}/140` : 'не сдавал'}
-- SAT: ${profile?.sat_score ? `${profile.sat_score}/1600` : 'не сдавал'}
-- ACT: ${profile?.act_score ? `${profile.act_score}/36` : 'не сдавал'}
-- IELTS: ${profile?.ielts_score ? `${profile.ielts_score}/9.0` : 'не сдавал'}
-- TOEFL: ${profile?.toefl_score ? `${profile.toefl_score}/120` : 'не сдавал'}
+- GPA: ${profile?.gpa ?? 'не указан'} (шкала 0-4)
+- ЕНТ: ${profile?.ent_score != null ? `${profile.ent_score}/140` : 'не сдавал'}
+- SAT: ${profile?.sat_score != null ? `${profile.sat_score}/1600` : 'не сдавал'}
+- ACT: ${profile?.act_score != null ? `${profile.act_score}/36` : 'не сдавал'}
+- IELTS: ${profile?.ielts_score != null ? `${profile.ielts_score}/9.0` : 'не сдавал'}
+- TOEFL: ${profile?.toefl_score != null ? `${profile.toefl_score}/120` : 'не сдавал'}
 
 Цель поступления:
 - Страна: ${profile?.target_country || 'не указана'}

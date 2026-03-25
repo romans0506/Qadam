@@ -298,6 +298,26 @@ body::after {
 }
 .inp:disabled { opacity: 0.35; cursor: default; }
 
+/* Force dark bg on select options (browser override) */
+.inp option, select option {
+  background: #1c1c1e;
+  color: #f5f5f7;
+}
+
+/* Dark date/time picker */
+input[type="date"].inp,
+input[type="time"].inp {
+  color-scheme: dark;
+}
+
+/* Admin form label — readable, not all-caps tiny */
+.admin-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.008em;
+  color: var(--text-secondary);
+}
+
 /* ─── Divider ────────────────────────────────────────────────────────────────── */
 .divider {
   height: 1px;

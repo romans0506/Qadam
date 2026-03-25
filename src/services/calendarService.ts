@@ -73,7 +73,6 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
   const events: Array<{
     user_id: string
     source_type: string
-    source_id: string
     title: string
     description: string
     start_date: string
@@ -88,7 +87,6 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
     events.push({
       user_id: userId,
       source_type: 'profile_goal',
-      source_id: `ent_register_${year}`,
       title: '📝 Зарегистрироваться на ЕНТ',
       description: 'Регистрация на ЕНТ обычно открывается в феврале-марте',
       start_date: new Date(`${year}-03-01`).toISOString(),
@@ -99,7 +97,6 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
     events.push({
       user_id: userId,
       source_type: 'profile_goal',
-      source_id: `ent_prep_${year}`,
       title: '📚 Начать подготовку к ЕНТ',
       description: 'Рекомендуем начать подготовку минимум за 3 месяца',
       start_date: new Date(`${year}-03-15`).toISOString(),
@@ -110,7 +107,6 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
     events.push({
       user_id: userId,
       source_type: 'profile_goal',
-      source_id: `ent_exam_${year}`,
       title: '🎯 Сдача ЕНТ',
       description: 'ЕНТ обычно проводится в июне',
       start_date: new Date(`${year}-06-10`).toISOString(),
@@ -124,7 +120,6 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
     events.push({
       user_id: userId,
       source_type: 'profile_goal',
-      source_id: `ielts_register_${year}`,
       title: '🌍 Зарегистрироваться на IELTS',
       description: 'Для поступления за рубеж нужен IELTS минимум 6.0',
       start_date: new Date(`${year}-04-01`).toISOString(),
@@ -137,7 +132,6 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
     events.push({
       user_id: userId,
       source_type: 'profile_goal',
-      source_id: `sat_register_${year}`,
       title: '📊 Зарегистрироваться на SAT',
       description: 'SAT нужен для поступления в американские университеты',
       start_date: new Date(`${year}-04-15`).toISOString(),
@@ -148,11 +142,9 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
 
   // Если есть целевой университет — добавляем напоминание
   if (profile.target_university) {
-    const uniKey = profile.target_university.replace(/\s+/g, '_').toLowerCase()
     events.push({
       user_id: userId,
       source_type: 'profile_goal',
-      source_id: `uni_requirements_${uniKey}_${year}`,
       title: `🎓 Изучить требования — ${profile.target_university}`,
       description: 'Проверь актуальные требования к поступлению',
       start_date: new Date(`${year}-04-01`).toISOString(),
@@ -163,7 +155,6 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
     events.push({
       user_id: userId,
       source_type: 'profile_goal',
-      source_id: `uni_documents_${uniKey}_${year}`,
       title: `📄 Подготовить документы — ${profile.target_university}`,
       description: 'Аттестат, транскрипт, фото, мед. справка',
       start_date: new Date(`${year}-05-01`).toISOString(),
@@ -174,12 +165,9 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
 
   // Если есть целевой зарубежный университет — добавляем эссе и рекомендации
   if (profile.target_university && profile.target_country && profile.target_country !== 'Казахстан') {
-    const uniKey = profile.target_university.replace(/\s+/g, '_').toLowerCase()
-
     events.push({
       user_id: userId,
       source_type: 'profile_goal',
-      source_id: `essay_start_${uniKey}_${year}`,
       title: `✍️ Начать писать эссе — ${profile.target_university}`,
       description: 'Common App / личное эссе для поступления',
       start_date: new Date(`${year}-08-01`).toISOString(),
@@ -190,7 +178,6 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
     events.push({
       user_id: userId,
       source_type: 'profile_goal',
-      source_id: `essay_draft_${uniKey}_${year}`,
       title: `📝 Черновик эссе — ${profile.target_university}`,
       description: 'Закончить первый черновик и отдать на проверку',
       start_date: new Date(`${year}-09-01`).toISOString(),
@@ -201,7 +188,6 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
     events.push({
       user_id: userId,
       source_type: 'profile_goal',
-      source_id: `rec_letters_${uniKey}_${year}`,
       title: '📨 Попросить рекомендательные письма',
       description: 'Обратись к учителям и наставникам за рекомендациями',
       start_date: new Date(`${year}-09-15`).toISOString(),
@@ -212,7 +198,6 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
     events.push({
       user_id: userId,
       source_type: 'profile_goal',
-      source_id: `essay_final_${uniKey}_${year}`,
       title: `✅ Финальная версия эссе — ${profile.target_university}`,
       description: 'Отредактировать и утвердить финальный вариант',
       start_date: new Date(`${year}-10-15`).toISOString(),
@@ -225,7 +210,6 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
   events.push({
     user_id: userId,
     source_type: 'profile_goal',
-    source_id: `portfolio_update_${year}`,
     title: '💼 Обновить портфолио',
     description: 'Добавь олимпиады, сертификаты и достижения',
     start_date: new Date(`${year}-05-15`).toISOString(),
@@ -236,7 +220,6 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
   events.push({
     user_id: userId,
     source_type: 'profile_goal',
-    source_id: `docs_deadline_${year}`,
     title: '📋 Подача документов',
     description: 'Финальный дедлайн подачи документов в университеты КЗ',
     start_date: new Date(`${year}-07-15`).toISOString(),
@@ -244,14 +227,14 @@ export async function generateCalendarFromProfile(userId: string): Promise<boole
     is_done: false,
   })
 
-  // Вставляем только те события которых ещё нет (по source_id + user_id)
+  // Вставляем только те события которых ещё нет (по title + user_id)
   for (const event of events) {
     const { data: existing } = await supabase
       .from('user_calendar_events')
       .select('id')
       .eq('user_id', userId)
       .eq('source_type', 'profile_goal')
-      .eq('source_id', event.source_id)
+      .eq('title', event.title)
       .limit(1)
 
     if (existing && existing.length > 0) continue

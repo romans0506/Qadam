@@ -23,6 +23,7 @@ export default function Profile() {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [memberSince, setMemberSince] = useState<string | null>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
@@ -30,8 +31,8 @@ export default function Profile() {
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
-    supabase.auth.getUser().then(({ data }) => {
-      const u = data.user
+    supabase.auth.getSession().then(async ({ data }) => {
+      const u = data.session?.user
       if (!u) { router.push('/login'); return }
       setUserId(u.id)
       setUserEmail(u.email ?? null)
@@ -40,26 +41,20 @@ export default function Profile() {
           month: 'long', year: 'numeric',
         }))
       }
-    })
-  }, [router])
-
-  useEffect(() => {
-    if (!userId) return
-    async function loadData() {
       const [profileData, portfolioData] = await Promise.all([
-        getProfile(userId!),
-        getPortfolio(userId!),
+        getProfile(u.id),
+        getPortfolio(u.id),
       ])
       if (profileData) {
         setProfile(profileData)
       } else {
-        setProfile({ user_id: userId!, full_name: '', avatar_url: '' })
+        setProfile({ user_id: u.id, full_name: '', avatar_url: '' })
         setEditing(true)
       }
       setPortfolio(portfolioData)
-    }
-    loadData()
-  }, [userId])
+      setLoading(false)
+    })
+  }, [router])
 
   async function handleSave() {
     if (!userId) return
@@ -103,12 +98,9 @@ export default function Profile() {
     }
   }
 
-  if (!userId) return (
+  if (loading) return (
     <main className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center">
-      <div className="flex items-center gap-3">
-        <Loader2 size={18} strokeWidth={1.5} className="text-[var(--accent)] animate-spin" />
-        <p className="t-body">Загрузка...</p>
-      </div>
+      <Loader2 size={18} strokeWidth={1.5} className="text-[var(--accent)] animate-spin" />
     </main>
   )
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, Mail, Lock, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle, Mail, CheckCircle2 } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
 
 export default function LoginPage() {
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [mode, setMode]         = useState<'signin' | 'signup'>('signin')
   const [error, setError]       = useState<string | null>(null)
   const [loading, setLoading]   = useState(false)
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false)
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
@@ -53,6 +54,11 @@ export default function LoginPage() {
           setError('Этот email уже зарегистрирован. Войдите в аккаунт.')
           return
         }
+        // Email confirmation required — no session yet
+        if (!data.session) {
+          setAwaitingConfirm(true)
+          return
+        }
         router.push('/profile')
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -64,6 +70,50 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (awaitingConfirm) {
+    return (
+      <main className="min-h-screen bg-[#050505] flex items-center justify-center p-6">
+        <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-indigo-900/10 blur-[140px]" />
+        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="card-glass w-full max-w-md p-12 relative z-10 text-center"
+        >
+          {/* Animated envelope with check */}
+          <div className="flex justify-center mb-8">
+            <div className="relative">
+              <div className="w-20 h-20 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                <Mail size={36} strokeWidth={1.3} className="text-indigo-400" />
+              </div>
+              <div className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-green-500 flex items-center justify-center border-2 border-[#050505]">
+                <CheckCircle2 size={16} strokeWidth={2.5} className="text-white" />
+              </div>
+            </div>
+          </div>
+
+          <h1 className="t-headline mb-3">Письмо отправлено!</h1>
+          <p className="t-body text-[var(--text-tertiary)] mb-2">
+            Мы отправили письмо с подтверждением на
+          </p>
+          <p className="font-semibold text-[var(--text-primary)] mb-6 break-all">{email}</p>
+          <p className="text-sm text-[var(--text-quaternary)] mb-8">
+            Перейди по ссылке в письме, чтобы активировать аккаунт. Не забудь проверить папку «Спам».
+          </p>
+
+          <button
+            onClick={() => { setAwaitingConfirm(false); setMode('signin'); setPassword('') }}
+            className="btn-primary w-full"
+          >
+            Войти после подтверждения
+          </button>
+        </motion.div>
+      </main>
+    )
   }
 
   return (
@@ -105,18 +155,13 @@ export default function LoginPage() {
           <div className="space-y-1.5">
             <label className="t-label">Email</label>
             <div className="relative">
-              <Mail
-                size={15}
-                strokeWidth={1.5}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-quaternary)] pointer-events-none z-10"
-              />
               <input
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 type="email"
                 required
                 placeholder="you@example.com"
-                className="inp w-full pl-12 focus:ring-1 focus:ring-white/20"
+                className="inp w-full focus:ring-1 focus:ring-white/20"
               />
             </div>
           </div>
@@ -124,11 +169,6 @@ export default function LoginPage() {
           <div className="space-y-1.5">
             <label className="t-label">Пароль</label>
             <div className="relative">
-              <Lock
-                size={15}
-                strokeWidth={1.5}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-quaternary)] pointer-events-none z-10"
-              />
               <input
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -136,7 +176,7 @@ export default function LoginPage() {
                 required
                 minLength={6}
                 placeholder="••••••••"
-                className="inp w-full pl-12 focus:ring-1 focus:ring-white/20"
+                className="inp w-full focus:ring-1 focus:ring-white/20"
               />
             </div>
           </div>
@@ -178,7 +218,7 @@ export default function LoginPage() {
             {mode === 'signin' ? 'Нет аккаунта?' : 'Уже есть аккаунт?'}
             {' '}
             <button
-              onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null) }}
+              onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null); setAwaitingConfirm(false) }}
               className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition font-medium"
             >
               {mode === 'signin' ? 'Зарегистрироваться' : 'Войти'}

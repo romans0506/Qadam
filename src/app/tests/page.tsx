@@ -38,9 +38,9 @@ export default function TestsPage() {
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) { router.push('/login'); return }
-      setUserId(data.user.id)
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session?.user) { router.push('/login'); return }
+      setUserId(data.session?.user.id)
     })
   }, [router])
 

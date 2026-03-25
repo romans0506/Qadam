@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Send, Loader2, ArrowLeft, MessageSquare, BookOpen, Building2, Trophy } from 'lucide-react'
+import { Sparkles, Send, Loader2, ArrowLeft, MessageSquare, BookOpen, Building2, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
 import { getProfile, getPortfolio } from '@/services/profileService'
@@ -25,7 +25,7 @@ const quickQuestions = [
 const actionShortcuts = [
   { label: 'Пройди тесты',        href: '/tests',        icon: BookOpen },
   { label: 'Сохрани университет', href: '/universities', icon: Building2 },
-  { label: 'Пройди олимпиады',    href: '/rankings',    icon: Trophy },
+  { label: 'Календарь',           href: '/calendar',    icon: CalendarDays },
 ]
 
 function computeReadinessScore(profile: Partial<UserProfile> | null): number {
@@ -58,7 +58,7 @@ function computeReadinessScore(profile: Partial<UserProfile> | null): number {
   }
 
   if (weight === 0) return 0
-  return Math.round((score / weight) * 100)
+  return Math.min(100, Math.round((score / weight) * 100))
 }
 
 export default function AssistantPage() {
@@ -74,38 +74,42 @@ export default function AssistantPage() {
   const [initialAnalysis, setInitialAnalysis] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const CHAT_STORAGE_PREFIX = 'qadam_ai_chat_v1'
-  const getChatKey  = (uid: string) => `${CHAT_STORAGE_PREFIX}:${uid}`
+  const ANALYSIS_KEY         = (uid: string) => `qadam_ai_analysis_v1:${uid}`
+  const ANALYSIS_PROFILE_KEY = (uid: string) => `qadam_ai_analysis_v1:${uid}:profile`
 
-  function loadSavedMessages(uid: string): Message[] | null {
+  function getProfileSnapshot(p: Partial<UserProfile> | null): string {
+    if (!p) return ''
+    return JSON.stringify({
+      gpa: p.gpa, ent_score: p.ent_score, sat_score: p.sat_score,
+      act_score: p.act_score, ielts_score: p.ielts_score, toefl_score: p.toefl_score,
+      target_university: p.target_university, target_country: p.target_country,
+    })
+  }
+
+  function loadCachedAnalysis(uid: string, currentSnapshot: string): string | null {
     try {
-      const raw = localStorage.getItem(getChatKey(uid))
-      if (!raw) return null
-      const parsed = JSON.parse(raw) as Message[]
-      if (!Array.isArray(parsed)) return null
-      return parsed.filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      const savedSnapshot = localStorage.getItem(ANALYSIS_PROFILE_KEY(uid))
+      if (savedSnapshot !== currentSnapshot) return null          // profile changed → stale
+      return localStorage.getItem(ANALYSIS_KEY(uid))
     } catch { return null }
   }
 
-  function persistMessages(uid: string, next: Message[]) {
-    try { localStorage.setItem(getChatKey(uid), JSON.stringify(next)) }
-    catch (e) { console.warn('Failed to persist chat history:', e) }
+  function cacheAnalysis(uid: string, content: string, profileSnapshot: string) {
+    try {
+      localStorage.setItem(ANALYSIS_KEY(uid), content)
+      localStorage.setItem(ANALYSIS_PROFILE_KEY(uid), profileSnapshot)
+    } catch (e) { console.warn('Failed to cache analysis:', e) }
   }
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) { router.push('/login'); return }
-      setUserId(data.user.id)
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session?.user) { router.push('/login'); return }
+      setUserId(data.session?.user.id)
     })
   }, [router])
 
   useEffect(() => { if (userId) loadData() }, [userId])
-
-  useEffect(() => {
-    if (!userId || !messages.length) return
-    persistMessages(userId, messages)
-  }, [userId, messages])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -119,10 +123,12 @@ export default function AssistantPage() {
     setProfile(profileData)
     setPortfolio(portfolioData)
 
-    const saved = loadSavedMessages(userId!)
-    if (saved && saved.length > 0) {
-      setMessages(saved)
-      if (saved[0]?.role === 'assistant') setInitialAnalysis(saved[0].content)
+    // Each page visit = fresh chat. Only the initial analysis is cached.
+    const snapshot = getProfileSnapshot(profileData)
+    const cached   = loadCachedAnalysis(userId!, snapshot)
+    if (cached) {
+      setMessages([{ role: 'assistant', content: cached }])
+      setInitialAnalysis(cached)
       setInitializing(false)
       return
     }
@@ -148,6 +154,7 @@ export default function AssistantPage() {
       const content = data?.message ?? 'AI не вернул ответ'
       setMessages([{ role: 'assistant', content }])
       setInitialAnalysis(content)
+      if (userId) cacheAnalysis(userId, content, getProfileSnapshot(profileData))
     } catch {
       const fallback = 'AI временно недоступен. Попробуй позже.'
       setMessages([{ role: 'assistant', content: fallback }])

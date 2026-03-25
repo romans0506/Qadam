@@ -17,12 +17,19 @@ interface Props {
   onChange: (filters: Filters) => void
 }
 
-const selectClass = [
-  'bg-[var(--bg-raised)] border border-[var(--border)] text-[var(--text-secondary)]',
-  'rounded-pill px-4 py-2 text-sm focus:outline-none transition cursor-pointer',
-  'focus:border-[var(--border-strong)] hover:border-[var(--border-strong)]',
+const selectClass = (active: boolean) => [
+  'border rounded-pill px-4 py-2 text-sm focus:outline-none transition cursor-pointer',
   '[&>option]:bg-[#111111] [&>option]:text-[var(--text-primary)]',
+  active
+    ? '!bg-[var(--accent-soft)] !border-[var(--accent)]/50 !text-[var(--accent)] font-medium'
+    : 'bg-[var(--bg-raised)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
 ].join(' ')
+
+const btnClass = (active: boolean) => `btn-secondary text-sm px-4 py-2 h-auto transition ${
+  active
+    ? '!bg-[var(--accent-soft)] !text-[var(--accent)] !border-[var(--accent)]/50 font-medium'
+    : ''
+}`
 
 const RESET: Filters = { region: '', country_id: '', major_id: '', type: '', has_dormitory: false, has_campus: false }
 
@@ -46,11 +53,7 @@ export default function UniversityFilters({ filters, countries, majors, onChange
         <button
           key={opt.value}
           onClick={() => onChange({ ...filters, region: opt.value, country_id: '' })}
-          className={`btn-secondary text-sm px-4 py-2 h-auto ${
-            filters.region === opt.value
-              ? 'bg-[var(--text-primary)] text-[var(--bg-base)] border-[var(--text-primary)]'
-              : ''
-          }`}
+          className={btnClass(filters.region === opt.value)}
         >
           {opt.label}
         </button>
@@ -62,7 +65,7 @@ export default function UniversityFilters({ filters, countries, majors, onChange
       {/* Country select */}
       {filteredCountries.length > 0 && (
         <select
-          className={selectClass}
+          className={selectClass(!!filters.country_id)}
           value={filters.country_id}
           onChange={e => onChange({ ...filters, country_id: e.target.value })}
         >
@@ -76,7 +79,7 @@ export default function UniversityFilters({ filters, countries, majors, onChange
       {/* Major select */}
       {majors.length > 0 && (
         <select
-          className={selectClass}
+          className={selectClass(!!filters.major_id)}
           value={filters.major_id}
           onChange={e => onChange({ ...filters, major_id: e.target.value })}
         >
@@ -89,7 +92,7 @@ export default function UniversityFilters({ filters, countries, majors, onChange
 
       {/* Type select */}
       <select
-        className={selectClass}
+        className={selectClass(!!filters.type)}
         value={filters.type}
         onChange={e => onChange({ ...filters, type: e.target.value })}
       >
@@ -102,25 +105,17 @@ export default function UniversityFilters({ filters, countries, majors, onChange
       {/* Dormitory toggle pill */}
       <button
         onClick={() => onChange({ ...filters, has_dormitory: !filters.has_dormitory })}
-        className={`btn-secondary text-sm px-4 py-2 h-auto ${
-          filters.has_dormitory
-            ? 'bg-[var(--text-primary)] text-[var(--bg-base)] border-[var(--text-primary)]'
-            : ''
-        }`}
+        className={btnClass(filters.has_dormitory)}
       >
-        Общежитие
+        🏠 Общежитие
       </button>
 
       {/* Campus toggle pill */}
       <button
         onClick={() => onChange({ ...filters, has_campus: !filters.has_campus })}
-        className={`btn-secondary text-sm px-4 py-2 h-auto ${
-          filters.has_campus
-            ? 'bg-[var(--text-primary)] text-[var(--bg-base)] border-[var(--text-primary)]'
-            : ''
-        }`}
+        className={btnClass(filters.has_campus)}
       >
-        Кампус
+        🏛️ Кампус
       </button>
 
       {/* Reset */}

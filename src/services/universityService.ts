@@ -18,6 +18,7 @@ export async function getUniversities(filters?: {
   type?: string
   has_dormitory?: boolean
   has_campus?: boolean
+  search?: string
   limit?: number
   offset?: number
 }): Promise<University[]> {
@@ -59,6 +60,12 @@ export async function getUniversities(filters?: {
   if (filters?.has_campus) query = query.eq('has_campus', true)
   if (filters?.country_id) query = query.eq('main_country_id', filters.country_id)
   if (majorUniversityIds) query = query.in('id', majorUniversityIds)
+  if (filters?.search) {
+    const q = filters.search.trim()
+    query = query.or(
+      `name.ilike.%${q}%,name_ru.ilike.%${q}%,aliases.ilike.%${q}%`
+    )
+  }
 
   const { data, error } = await query
   if (error) return []
@@ -88,7 +95,8 @@ export async function getUniversityById(id: string): Promise<University | null> 
         *,
         country:countries(flag_icon, name),
         city:cities(name)
-      )
+      ),
+      deadlines:university_deadlines(id, type, date, description)
     `)
     .eq('id', id)
     .single()

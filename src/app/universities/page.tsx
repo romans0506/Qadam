@@ -32,6 +32,13 @@ export default function UniversitiesPage() {
     getMajors().then(setMajors)
   }, [])
 
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(t)
+  }, [search])
+
   const loadUniversities = useCallback(async (newOffset: number, replace: boolean) => {
     if (replace) setLoading(true)
     else setLoadingMore(true)
@@ -43,6 +50,7 @@ export default function UniversitiesPage() {
       type: filters.type || undefined,
       has_dormitory: filters.has_dormitory || undefined,
       has_campus: filters.has_campus || undefined,
+      search: debouncedSearch || undefined,
       limit: PAGE_SIZE,
       offset: newOffset,
     })
@@ -54,20 +62,15 @@ export default function UniversitiesPage() {
     setOffset(newOffset + data.length)
     setLoading(false)
     setLoadingMore(false)
-  }, [filters])
+  }, [filters, debouncedSearch])
 
   useEffect(() => {
     setOffset(0)
     setHasMore(true)
     loadUniversities(0, true)
-  }, [filters]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filters, debouncedSearch]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const filtered = universities.filter(u =>
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.city?.name?.toLowerCase().includes(search.toLowerCase()) ||
-    u.country?.name?.toLowerCase().includes(search.toLowerCase()) ||
-    u.description_short?.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = universities
 
   return (
     <main className="min-h-screen bg-[var(--bg-base)]">
