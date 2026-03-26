@@ -50,7 +50,7 @@ Whether you're applying to Kazakh national universities or top international sch
 
 ## Features
 
-- **University Database** — 24+ universities from Kazakhstan and around the world with detailed profiles, photos, campus info
+- **University Database** — 100+ universities from Kazakhstan and around the world with detailed profiles, photos, campus info
 - **Smart Search** — Fuzzy search powered by PostgreSQL `pg_trgm` with Russian name support (`MIT` / `Массачусетский`)
 - **Global Rankings** — QS, THE, Shanghai (ARWU) rankings with filtering and comparison
 - **Smart Calendar** — Auto-generated events based on your profile, saved universities, and deadlines
