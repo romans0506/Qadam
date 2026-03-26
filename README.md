@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="public/qadam-logo.svg" width="48" alt="Qadam logo" />
-</p>
-
 <h1 align="center">Qadam</h1>
 
 <p align="center">
