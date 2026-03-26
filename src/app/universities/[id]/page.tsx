@@ -102,7 +102,16 @@ export default async function UniversityDetailPage({ params }: PageProps) {
             {location && (
               <div>
                 <p className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] leading-none flex items-center gap-2">
-                  {university.country?.flag_icon}
+                  {university.country?.flag_icon && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`https://flagcdn.com/w40/${university.country.flag_icon.toLowerCase()}.png`}
+                      width={24}
+                      height={18}
+                      alt=""
+                      className="rounded-[2px] inline-block shrink-0"
+                    />
+                  )}
                   {university.city?.name ?? university.country?.name}
                 </p>
                 <p className="t-label mt-1.5 flex items-center gap-1">

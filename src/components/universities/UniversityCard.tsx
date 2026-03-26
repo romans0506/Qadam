@@ -2,6 +2,21 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { University } from '@/types/university'
 
+function FlagImg({ code }: { code: string }) {
+  const c = code.toLowerCase()
+  return (
+    <img
+      src={`https://flagcdn.com/w40/${c}.png`}
+      srcSet={`https://flagcdn.com/w40/${c}.png 1x, https://flagcdn.com/w80/${c}.png 2x`}
+      width={20}
+      height={15}
+      alt=""
+      className="inline-block rounded-[2px] shrink-0"
+      loading="lazy"
+    />
+  )
+}
+
 export default function UniversityCard({ university }: { university: University }) {
   const topRanking = university.rankings?.[0]
 
@@ -54,8 +69,8 @@ export default function UniversityCard({ university }: { university: University 
         <div className="flex flex-col flex-1 p-6 gap-3">
 
           {/* Location — label row */}
-          <p className="t-label">
-            {university.country?.flag_icon}{' '}
+          <p className="t-label flex items-center gap-1.5">
+            {university.country?.flag_icon && <FlagImg code={university.country.flag_icon} />}
             {[university.city?.name, university.country?.name].filter(Boolean).join(', ')}
           </p>
 
@@ -90,7 +105,10 @@ export default function UniversityCard({ university }: { university: University 
             )}
             {university.campuses && university.campuses.length > 1 && (
               <span className="t-label normal-case tracking-normal text-[var(--text-quaternary)]">
-                {university.campuses.map(c => c.country?.flag_icon).filter(Boolean).join(' ')}
+                {university.campuses.map(c => c.country?.flag_icon
+                  ? <FlagImg key={c.id} code={c.country.flag_icon} />
+                  : null
+                )}
               </span>
             )}
           </div>

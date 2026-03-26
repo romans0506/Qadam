@@ -30,10 +30,11 @@ export default function AdminUniversities() {
   useEffect(() => { load() }, [])
 
   async function load() {
-    const [{ data: u }, { data: c }] = await Promise.all([
+    const [{ data: u, error: uErr }, { data: c }] = await Promise.all([
       supabase.from('universities').select('id, name, type, website_url, description_short, description_full, photo_url, main_country_id, has_dormitory, has_campus, aliases').order('name'),
       supabase.from('countries').select('id, name').order('name'),
     ])
+    if (uErr) console.error('Admin universities load error:', uErr)
     setUniversities(u ?? [])
     setCountries(c ?? [])
   }

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Loader2, ExternalLink, ChevronRight } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
+import CustomSelect from '@/components/ui/CustomSelect'
 
 interface RankedUniversity {
   id: string
@@ -122,14 +123,16 @@ export default function RankingsPage() {
 
           {/* Year select */}
           {years.length > 1 && (
-            <select
-              className="bg-[var(--bg-raised)] border border-[var(--border)] text-[var(--text-secondary)] rounded-full px-4 py-2 text-sm focus:outline-none focus:border-[var(--border-strong)] hover:border-[var(--border-strong)] transition [&>option]:bg-[#111111] cursor-pointer"
+            <CustomSelect
               value={selectedYear}
-              onChange={e => setSelectedYear(e.target.value)}
-            >
-              <option value="">Все годы</option>
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
+              onChange={setSelectedYear}
+              placeholder="Все годы"
+              className="w-36"
+              options={[
+                { value: '', label: 'Все годы' },
+                ...years.map(y => ({ value: String(y), label: String(y) }))
+              ]}
+            />
           )}
 
           {/* Source website */}
@@ -214,8 +217,15 @@ export default function RankingsPage() {
                         <p className="t-title text-base group-hover:text-white transition-colors truncate">
                           {uni.name}
                         </p>
-                        <p className="t-label normal-case tracking-normal text-[var(--text-tertiary)] mt-1 truncate">
-                          {uni.country?.flag_icon} {[uni.city?.name, uni.country?.name].filter(Boolean).join(', ')}
+                        <p className="t-label normal-case tracking-normal text-[var(--text-tertiary)] mt-1 truncate flex items-center gap-1.5">
+                          {uni.country?.flag_icon && (
+                            <img
+                              src={`https://flagcdn.com/w40/${uni.country.flag_icon.toLowerCase()}.png`}
+                              width={16} height={12} alt=""
+                              className="inline-block rounded-[2px] shrink-0"
+                            />
+                          )}
+                          {[uni.city?.name, uni.country?.name].filter(Boolean).join(', ')}
                         </p>
                       </div>
 

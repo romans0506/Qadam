@@ -1,5 +1,42 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase'
 
+interface EventTemplate {
+  id: string
+  title: string
+  description: string | null
+  source_type: string
+  month: number
+  day: number
+  condition_field: string | null
+  condition_op: string | null
+  condition_value: string | null
+  condition2_field: string | null
+  condition2_op: string | null
+  condition2_value: string | null
+  is_active: boolean
+}
+
+function matchesCondition(
+  field: string | null,
+  op: string | null,
+  value: string | null,
+  profile: Record<string, any>
+): boolean {
+  if (!field || !op) return true
+  const profileVal = profile[field]
+  switch (op) {
+    case 'missing':     return !profileVal
+    case 'present':     return !!profileVal
+    case 'equals':      return profileVal === value
+    case 'not_equals':  return profileVal !== value
+    default:            return true
+  }
+}
+
+function interpolate(text: string, profile: Record<string, any>): string {
+  return text.replace(/\{\{(\w+)\}\}/g, (_, key) => profile[key] ?? key)
+}
+
 export async function generateCalendarFromUniversity(
   userId: string,
   universityId: string
@@ -34,8 +71,8 @@ export async function generateCalendarFromUniversity(
       source_id: d.id,
       title: `${d.university?.name} — ${
         d.type === 'application' ? '📋 Подача документов' :
-        d.type === 'exam' ? '📝 Экзамен' :
-        d.type === 'essay' ? '✍️ Дедлайн эссе' :
+        d.type === 'exam'        ? '📝 Экзамен' :
+        d.type === 'essay'       ? '✍️ Дедлайн эссе' :
         d.description || d.type
       }`,
       description: d.description,
@@ -56,189 +93,62 @@ export async function generateCalendarFromUniversity(
 export async function generateCalendarFromProfile(userId: string): Promise<boolean> {
   const supabase = createSupabaseBrowserClient()
 
-  // Получаем профиль пользователя
+  // Загружаем профиль
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('target_university, target_country, target_specialty, ent_score, ielts_score, sat_score')
     .eq('user_id', userId)
     .single()
 
-  if (profileError) {
+  if (profileError || !profile) {
     console.error('generateCalendarFromProfile: failed to load profile:', profileError)
     return false
   }
 
-  if (!profile) return false
+  // Загружаем шаблоны из БД
+  const { data: templates, error: templatesError } = await supabase
+    .from('event_templates')
+    .select('id, title, description, source_type, month, day, condition_field, condition_op, condition_value, condition2_field, condition2_op, condition2_value, is_active')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
 
-  const events: Array<{
-    user_id: string
-    source_type: string
-    title: string
-    description: string
-    start_date: string
-    is_auto_generated: boolean
-    is_done: boolean
-  }> = []
-  const now = new Date()
-  const year = now.getFullYear()
-
-  // Если нет ЕНТ — добавляем напоминание
-  if (!profile.ent_score) {
-    events.push({
-      user_id: userId,
-      source_type: 'profile_goal',
-      title: '📝 Зарегистрироваться на ЕНТ',
-      description: 'Регистрация на ЕНТ обычно открывается в феврале-марте',
-      start_date: new Date(`${year}-03-01`).toISOString(),
-      is_auto_generated: true,
-      is_done: false,
-    })
-
-    events.push({
-      user_id: userId,
-      source_type: 'profile_goal',
-      title: '📚 Начать подготовку к ЕНТ',
-      description: 'Рекомендуем начать подготовку минимум за 3 месяца',
-      start_date: new Date(`${year}-03-15`).toISOString(),
-      is_auto_generated: true,
-      is_done: false,
-    })
-
-    events.push({
-      user_id: userId,
-      source_type: 'profile_goal',
-      title: '🎯 Сдача ЕНТ',
-      description: 'ЕНТ обычно проводится в июне',
-      start_date: new Date(`${year}-06-10`).toISOString(),
-      is_auto_generated: true,
-      is_done: false,
-    })
+  if (templatesError || !templates) {
+    console.error('generateCalendarFromProfile: failed to load templates:', templatesError)
+    return false
   }
 
-  // Если нет IELTS/SAT и цель зарубежный универ
-  if (!profile.ielts_score && profile.target_country && profile.target_country !== 'Казахстан') {
-    events.push({
-      user_id: userId,
-      source_type: 'profile_goal',
-      title: '🌍 Зарегистрироваться на IELTS',
-      description: 'Для поступления за рубеж нужен IELTS минимум 6.0',
-      start_date: new Date(`${year}-04-01`).toISOString(),
-      is_auto_generated: true,
-      is_done: false,
-    })
-  }
+  const year = new Date().getFullYear()
 
-  if (!profile.sat_score && profile.target_country === 'США') {
-    events.push({
-      user_id: userId,
-      source_type: 'profile_goal',
-      title: '📊 Зарегистрироваться на SAT',
-      description: 'SAT нужен для поступления в американские университеты',
-      start_date: new Date(`${year}-04-15`).toISOString(),
-      is_auto_generated: true,
-      is_done: false,
-    })
-  }
+  for (const tpl of templates as EventTemplate[]) {
+    // Проверяем оба условия
+    const cond1 = matchesCondition(tpl.condition_field, tpl.condition_op, tpl.condition_value, profile)
+    const cond2 = matchesCondition(tpl.condition2_field, tpl.condition2_op, tpl.condition2_value, profile)
+    if (!cond1 || !cond2) continue
 
-  // Если есть целевой университет — добавляем напоминание
-  if (profile.target_university) {
-    events.push({
-      user_id: userId,
-      source_type: 'profile_goal',
-      title: `🎓 Изучить требования — ${profile.target_university}`,
-      description: 'Проверь актуальные требования к поступлению',
-      start_date: new Date(`${year}-04-01`).toISOString(),
-      is_auto_generated: true,
-      is_done: false,
-    })
+    const title = interpolate(tpl.title, profile)
+    const description = tpl.description ? interpolate(tpl.description, profile) : null
 
-    events.push({
-      user_id: userId,
-      source_type: 'profile_goal',
-      title: `📄 Подготовить документы — ${profile.target_university}`,
-      description: 'Аттестат, транскрипт, фото, мед. справка',
-      start_date: new Date(`${year}-05-01`).toISOString(),
-      is_auto_generated: true,
-      is_done: false,
-    })
-  }
-
-  // Если есть целевой зарубежный университет — добавляем эссе и рекомендации
-  if (profile.target_university && profile.target_country && profile.target_country !== 'Казахстан') {
-    events.push({
-      user_id: userId,
-      source_type: 'profile_goal',
-      title: `✍️ Начать писать эссе — ${profile.target_university}`,
-      description: 'Common App / личное эссе для поступления',
-      start_date: new Date(`${year}-08-01`).toISOString(),
-      is_auto_generated: true,
-      is_done: false,
-    })
-
-    events.push({
-      user_id: userId,
-      source_type: 'profile_goal',
-      title: `📝 Черновик эссе — ${profile.target_university}`,
-      description: 'Закончить первый черновик и отдать на проверку',
-      start_date: new Date(`${year}-09-01`).toISOString(),
-      is_auto_generated: true,
-      is_done: false,
-    })
-
-    events.push({
-      user_id: userId,
-      source_type: 'profile_goal',
-      title: '📨 Попросить рекомендательные письма',
-      description: 'Обратись к учителям и наставникам за рекомендациями',
-      start_date: new Date(`${year}-09-15`).toISOString(),
-      is_auto_generated: true,
-      is_done: false,
-    })
-
-    events.push({
-      user_id: userId,
-      source_type: 'profile_goal',
-      title: `✅ Финальная версия эссе — ${profile.target_university}`,
-      description: 'Отредактировать и утвердить финальный вариант',
-      start_date: new Date(`${year}-10-15`).toISOString(),
-      is_auto_generated: true,
-      is_done: false,
-    })
-  }
-
-  // Универсальные события для всех
-  events.push({
-    user_id: userId,
-    source_type: 'profile_goal',
-    title: '💼 Обновить портфолио',
-    description: 'Добавь олимпиады, сертификаты и достижения',
-    start_date: new Date(`${year}-05-15`).toISOString(),
-    is_auto_generated: true,
-    is_done: false,
-  })
-
-  events.push({
-    user_id: userId,
-    source_type: 'profile_goal',
-    title: '📋 Подача документов',
-    description: 'Финальный дедлайн подачи документов в университеты КЗ',
-    start_date: new Date(`${year}-07-15`).toISOString(),
-    is_auto_generated: true,
-    is_done: false,
-  })
-
-  // Вставляем только те события которых ещё нет (по title + user_id)
-  for (const event of events) {
+    // Проверяем что такого события ещё нет
     const { data: existing } = await supabase
       .from('user_calendar_events')
       .select('id')
       .eq('user_id', userId)
       .eq('source_type', 'profile_goal')
-      .eq('title', event.title)
+      .eq('title', title)
       .limit(1)
 
     if (existing && existing.length > 0) continue
-    const { error: insertError } = await supabase.from('user_calendar_events').insert(event)
+
+    const { error: insertError } = await supabase.from('user_calendar_events').insert({
+      user_id: userId,
+      source_type: tpl.source_type,
+      title,
+      description,
+      start_date: new Date(`${year}-${String(tpl.month).padStart(2, '0')}-${String(tpl.day).padStart(2, '0')}`).toISOString(),
+      is_auto_generated: true,
+      is_done: false,
+    })
+
     if (insertError) {
       console.error('generateCalendarFromProfile insert error:', insertError)
       return false

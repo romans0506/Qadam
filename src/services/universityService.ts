@@ -38,11 +38,16 @@ export async function getUniversities(filters?: {
     if (majorUniversityIds.length === 0) return []
   }
 
+  // Use !inner join when filtering by region so the filter happens server-side
+  const countryJoin = filters?.region
+    ? 'country:countries!main_country_id!inner(*)'
+    : 'country:countries!main_country_id(*)'
+
   let query = supabase
     .from('universities')
     .select(`
       *,
-      country:countries!main_country_id(*),
+      ${countryJoin},
       city:cities!main_city_id(*),
       rankings:university_rankings(
         id, position, year,
@@ -55,6 +60,7 @@ export async function getUniversities(filters?: {
     `)
     .range(pageOffset, pageOffset + pageSize - 1)
 
+  if (filters?.region) query = query.eq('countries.region', filters.region)
   if (filters?.type) query = query.eq('type', filters.type)
   if (filters?.has_dormitory) query = query.eq('has_dormitory', true)
   if (filters?.has_campus) query = query.eq('has_campus', true)
@@ -70,13 +76,7 @@ export async function getUniversities(filters?: {
   const { data, error } = await query
   if (error) return []
 
-  // Фильтруем по региону на стороне клиента
-  let result = data ?? []
-  if (filters?.region) {
-    result = result.filter((u: any) => u.country?.region === filters.region)
-  }
-
-  return result
+  return data ?? []
 }
 
 export async function getUniversityById(id: string): Promise<University | null> {

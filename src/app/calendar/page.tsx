@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, Plus, X, RefreshCw, Trash2, CheckSquare, Square } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
+import CustomSelect from '@/components/ui/CustomSelect'
+import DatePicker from '@/components/ui/DatePicker'
 
 interface CalendarEvent {
   id: string
@@ -188,36 +190,47 @@ export default function CalendarPage() {
               transition={{ duration: 0.25 }}
               className="card p-6 mb-8 flex flex-col gap-3"
             >
-              <p className="t-label mb-2">Новое событие</p>
-              <input
-                className="inp"
-                placeholder="Название события"
-                value={form.title}
-                onChange={e => setForm({ ...form, title: e.target.value })}
-              />
-              <input
-                className="inp"
-                placeholder="Описание (необязательно)"
-                value={form.description}
-                onChange={e => setForm({ ...form, description: e.target.value })}
-              />
-              <input
-                type="date"
-                className="inp"
-                value={form.start_date}
-                onChange={e => setForm({ ...form, start_date: e.target.value })}
-              />
-              <select
-                className="inp [&>option]:bg-[#111111]"
-                value={form.type}
-                onChange={e => setForm({ ...form, type: e.target.value })}
-              >
-                <option value="deadline">Дедлайн</option>
-                <option value="exam">Экзамен</option>
-                <option value="event">Событие</option>
-                <option value="reminder">Напоминание</option>
-              </select>
-              <button onClick={addEvent} className="btn-primary mt-1">
+              <p className="t-label mb-3">Новое событие</p>
+              <div>
+                <label className="form-label">Название <span className="text-red-400">*</span></label>
+                <input
+                  className="inp"
+                  placeholder="Название события"
+                  value={form.title}
+                  onChange={e => setForm({ ...form, title: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="form-label">Описание</label>
+                <input
+                  className="inp"
+                  placeholder="Описание (необязательно)"
+                  value={form.description}
+                  onChange={e => setForm({ ...form, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="form-label">Дата <span className="text-red-400">*</span></label>
+                <DatePicker
+                  value={form.start_date}
+                  onChange={v => setForm({ ...form, start_date: v })}
+                  placeholder="Выбрать дату"
+                />
+              </div>
+              <div>
+                <label className="form-label">Тип события</label>
+                <CustomSelect
+                  value={form.type}
+                  onChange={v => setForm({ ...form, type: v })}
+                  options={[
+                    { value: 'deadline', label: 'Дедлайн' },
+                    { value: 'exam', label: 'Экзамен' },
+                    { value: 'event', label: 'Событие' },
+                    { value: 'reminder', label: 'Напоминание' },
+                  ]}
+                />
+              </div>
+              <button onClick={addEvent} className="btn-primary mt-2">
                 Сохранить
               </button>
             </motion.div>

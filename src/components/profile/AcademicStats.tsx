@@ -59,41 +59,39 @@ export default function AcademicStats({ profile, editing, onChange }: Props) {
   ]
 
   return (
-    <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 mt-4">
-      <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">Академические показатели</h2>
+    <div className="card p-6 mt-4">
+      <h2 className="t-label mb-4">Академические показатели</h2>
 
       {/* Bento stat grid */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         {stats.map(({ label, value }, i) => (
           <div key={label} className={`bg-gradient-to-br ${STAT_COLORS[i]} border rounded-xl p-3 text-center`}>
             <p className="text-lg font-bold">{value ?? '—'}</p>
-            <p className="text-slate-500 text-xs mt-0.5">{label}</p>
+            <p className="text-[var(--text-quaternary)] text-xs mt-0.5">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Edit fields */}
       {editing && (
-        <div className="space-y-2.5 border-t border-white/[0.06] pt-4">
-          <p className="text-slate-600 text-xs mb-3">Введи свои результаты:</p>
+        <div className="space-y-2.5 border-t border-[var(--border)] pt-4">
+          <p className="form-hint mb-3">Введи свои результаты:</p>
           {FIELDS.map(({ label, field, min, max, step, placeholder, isFloat }) => (
             <div key={field}>
               <div className="flex items-center gap-3">
-                <span className="w-12 text-slate-400 text-xs font-medium shrink-0">{label}</span>
+                <span className="w-14 form-label mb-0 shrink-0">{label}</span>
                 <input
                   type="number" min={min} max={max} step={step}
                   placeholder={placeholder}
                   value={profile[field as keyof UserProfile] as number || ''}
                   onChange={e => handleChange(field, min, max, isFloat, e.target.value)}
-                  className={`flex-1 bg-white/5 border rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 transition placeholder-slate-600 ${
-                    errors[field]
-                      ? 'border-red-500/50 focus:ring-red-500/30'
-                      : 'border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/30'
+                  className={`inp flex-1 ${
+                    errors[field] ? '!border-red-500/50 focus:!shadow-[0_0_0_3px_rgba(239,68,68,0.15)]' : ''
                   }`}
                 />
               </div>
               {errors[field] && (
-                <p className="text-red-400 text-xs mt-1 ml-15 pl-[60px]">Диапазон: {errors[field]}</p>
+                <p className="text-red-400 text-xs mt-1 pl-[68px]">Диапазон: {errors[field]}</p>
               )}
             </div>
           ))}

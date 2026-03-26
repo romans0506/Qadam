@@ -1,5 +1,6 @@
 'use client'
 import { Country, Major } from '@/types/university'
+import CustomSelect from '@/components/ui/CustomSelect'
 
 interface Filters {
   region: '' | 'kazakhstan' | 'abroad'
@@ -45,62 +46,70 @@ export default function UniversityFilters({ filters, countries, majors, onChange
     <div className="flex flex-wrap gap-2 items-center">
 
       {/* Region — pill group */}
-      {[
-        { value: '' as const, label: 'Все' },
-        { value: 'kazakhstan' as const, label: '🇰🇿 Казахстан' },
-        { value: 'abroad' as const, label: '✈️ Зарубежные' },
-      ].map(opt => (
-        <button
-          key={opt.value}
-          onClick={() => onChange({ ...filters, region: opt.value, country_id: '' })}
-          className={btnClass(filters.region === opt.value)}
-        >
-          {opt.label}
-        </button>
-      ))}
+      <button
+        onClick={() => onChange({ ...filters, region: '', country_id: '' })}
+        className={btnClass(filters.region === '')}
+      >
+        Все
+      </button>
+      <button
+        onClick={() => onChange({ ...filters, region: 'kazakhstan', country_id: '' })}
+        className={`${btnClass(filters.region === 'kazakhstan')} flex items-center gap-1.5`}
+      >
+        <img src="https://flagcdn.com/w40/kz.png" width={16} height={12} alt="" className="rounded-[2px]" />
+        Казахстан
+      </button>
+      <button
+        onClick={() => onChange({ ...filters, region: 'abroad', country_id: '' })}
+        className={btnClass(filters.region === 'abroad')}
+      >
+        ✈️ Зарубежные
+      </button>
 
       {/* Separator */}
       <div className="w-px h-6 bg-[var(--border)] mx-1" />
 
       {/* Country select */}
       {filteredCountries.length > 0 && (
-        <select
-          className={selectClass(!!filters.country_id)}
+        <CustomSelect
           value={filters.country_id}
-          onChange={e => onChange({ ...filters, country_id: e.target.value })}
-        >
-          <option value="">Все страны</option>
-          {filteredCountries.map(c => (
-            <option key={c.id} value={c.id}>{c.flag_icon} {c.name}</option>
-          ))}
-        </select>
+          onChange={v => onChange({ ...filters, country_id: v })}
+          placeholder="Все страны"
+          className="w-44"
+          options={[
+            { value: '', label: 'Все страны' },
+            ...filteredCountries.map(c => ({ value: c.id, label: c.name }))
+          ]}
+        />
       )}
 
       {/* Major select */}
       {majors.length > 0 && (
-        <select
-          className={selectClass(!!filters.major_id)}
+        <CustomSelect
           value={filters.major_id}
-          onChange={e => onChange({ ...filters, major_id: e.target.value })}
-        >
-          <option value="">Все специальности</option>
-          {majors.map(m => (
-            <option key={m.id} value={m.id}>{m.name}</option>
-          ))}
-        </select>
+          onChange={v => onChange({ ...filters, major_id: v })}
+          placeholder="Все специальности"
+          className="w-52"
+          options={[
+            { value: '', label: 'Все специальности' },
+            ...majors.map(m => ({ value: m.id, label: m.name }))
+          ]}
+        />
       )}
 
       {/* Type select */}
-      <select
-        className={selectClass(!!filters.type)}
+      <CustomSelect
         value={filters.type}
-        onChange={e => onChange({ ...filters, type: e.target.value })}
-      >
-        <option value="">Все типы</option>
-        <option value="national">Национальные</option>
-        <option value="technical">Технические</option>
-        <option value="private">Частные</option>
-      </select>
+        onChange={v => onChange({ ...filters, type: v })}
+        placeholder="Все типы"
+        className="w-40"
+        options={[
+          { value: '', label: 'Все типы' },
+          { value: 'national', label: 'Национальные' },
+          { value: 'technical', label: 'Технические' },
+          { value: 'private', label: 'Частные' },
+        ]}
+      />
 
       {/* Dormitory toggle pill */}
       <button

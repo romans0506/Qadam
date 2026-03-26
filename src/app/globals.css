@@ -1,5 +1,5 @@
 /* ─── Fonts ───────────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 /* ─── Design Tokens ────────────────────────────────────────────────────────── */
@@ -77,9 +77,8 @@ html {
 body {
   background: var(--bg-base);
   color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
                'SF Pro Text', system-ui, sans-serif;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -276,38 +275,82 @@ body::after {
 /* ─── Form Input Primitives ─────────────────────────────────────────────────── */
 .inp {
   width: 100%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 12px;
-  padding: 0.75rem 1rem;  /* default; override with pl-12 when icon is present */
-  font-size: 0.9375rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
   font-weight: 400;
   letter-spacing: -0.011em;
   color: var(--text-primary);
   font-family: inherit;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   -webkit-appearance: none;
 }
-.inp::placeholder { color: var(--text-tertiary); }
+.inp::placeholder { color: var(--text-quaternary); }
+.inp:hover:not(:disabled):not(:focus) {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
 .inp:focus {
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow:
-    0 0 0 3px rgba(255, 255, 255, 0.05),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 .inp:disabled { opacity: 0.35; cursor: default; }
+
+/* Select — custom arrow */
+select.inp {
+  cursor: pointer;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236e6e73' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.875rem center;
+}
+
+/* Textarea */
+textarea.inp {
+  resize: none;
+  min-height: 5rem;
+  line-height: 1.6;
+}
+
+/* Checkbox */
+.inp-checkbox {
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+  border-radius: 4px;
+}
 
 /* Force dark bg on select options (browser override) */
 .inp option, select option {
   background: #1c1c1e;
   color: #f5f5f7;
+  padding: 0.5rem;
 }
 
 /* Dark date/time picker */
 input[type="date"].inp,
 input[type="time"].inp {
   color-scheme: dark;
+}
+
+/* Form label */
+.form-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.008em;
+  color: var(--text-secondary);
+  margin-bottom: 0.375rem;
+}
+.form-hint {
+  font-size: 0.75rem;
+  color: var(--text-quaternary);
+  margin-top: 0.25rem;
 }
 
 /* Admin form label — readable, not all-caps tiny */

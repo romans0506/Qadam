@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
-import { Building2, CalendarDays, Trophy, Users } from 'lucide-react'
+import { Building2, CalendarDays, Trophy, Users, LayoutTemplate } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ universities: 0, deadlines: 0, rankings: 0, users: 0 })
@@ -29,6 +29,7 @@ export default function AdminDashboard() {
     { label: 'Дедлайны',     value: stats.deadlines,    icon: CalendarDays, href: '/admin/deadlines',    color: 'text-amber-400'  },
     { label: 'Рейтинги',     value: stats.rankings,     icon: Trophy,       href: '/admin/rankings',     color: 'text-violet-400' },
     { label: 'Пользователи', value: stats.users,        icon: Users,        href: '#',                   color: 'text-emerald-400' },
+    { label: 'Шаблоны',     value: 0,                  icon: LayoutTemplate, href: '/admin/templates',  color: 'text-cyan-400' },
   ]
 
   return (
@@ -52,6 +53,7 @@ export default function AdminDashboard() {
           <Link href="/admin/universities" className="btn-secondary text-sm">+ Добавить университет</Link>
           <Link href="/admin/deadlines"    className="btn-secondary text-sm">+ Добавить дедлайн</Link>
           <Link href="/admin/rankings"     className="btn-secondary text-sm">+ Добавить рейтинг</Link>
+          <Link href="/admin/templates"   className="btn-secondary text-sm">+ Добавить шаблон</Link>
         </div>
       </div>
     </div>
