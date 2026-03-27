@@ -294,12 +294,12 @@ export default function Profile() {
         {userId && <SavedUniversities userId={userId} />}
         {userId && <TestResults userId={userId} />}
 
-        <Portfolio
+        {userId && <Portfolio
           items={portfolio}
           userId={userId}
           onAdd={handleAddPortfolio}
           onDelete={handleDeletePortfolio}
-        />
+        />}
 
         {/* ── SAVE CTA ────────────────────────────────────────────────── */}
         {editing && (
