@@ -4,7 +4,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase'
 import { Plus, Trash2, Loader2, X, Pencil } from 'lucide-react'
 
 interface University {
-  id: string; name: string; type: string | null; website_url: string | null
+  id: string; name: string; name_ru: string | null; type: string | null; website_url: string | null
   description_short: string | null; description_full: string | null
   photo_url: string | null; main_country_id: string | null
   has_dormitory: boolean; has_campus: boolean; aliases: string | null
@@ -31,7 +31,7 @@ export default function AdminUniversities() {
 
   async function load() {
     const [{ data: u, error: uErr }, { data: c }] = await Promise.all([
-      supabase.from('universities').select('id, name, type, website_url, description_short, description_full, photo_url, main_country_id, has_dormitory, has_campus, aliases').order('name'),
+      supabase.from('universities').select('id, name, name_ru, type, website_url, description_short, description_full, photo_url, main_country_id, has_dormitory, has_campus, aliases').order('name'),
       supabase.from('countries').select('id, name').order('name'),
     ])
     if (uErr) console.error('Admin universities load error:', uErr)
