@@ -35,7 +35,7 @@ export default function AdminDeadlines() {
         .order('date'),
       supabase.from('universities').select('id, name').order('name'),
     ])
-    setDeadlines((d ?? []) as Deadline[])
+    setDeadlines((d ?? []) as unknown as Deadline[])
     setUniversities(u ?? [])
   }
 
