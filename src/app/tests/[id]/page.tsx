@@ -82,7 +82,7 @@ export default function TestPage({ params }: { params: Promise<{ id: string }> }
       .select('*, options:test_options(*)')
       .eq('test_id', testId)
       .order('order')
-    setQuestions(questionsData ?? [])
+    setQuestions((questionsData ?? []) as unknown as Question[])
 
     const { data: existingSessions } = await supabase
       .from('user_test_sessions')

@@ -32,7 +32,7 @@ export default function AdminRankings() {
       supabase.from('universities').select('id, name').order('name'),
       supabase.from('ranking_sources').select('id, name').order('name'),
     ])
-    setRankings(r ?? [])
+    setRankings((r ?? []) as unknown as Ranking[])
     setUniversities(u ?? [])
     setSources(s ?? [])
   }

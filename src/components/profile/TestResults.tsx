@@ -48,7 +48,7 @@ export default function TestResults({ userId }: { userId: string }) {
         .select('*, test:tests(title, code)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-      setResults(data ?? [])
+      setResults((data ?? []) as unknown as TestResult[])
     }
     load()
   }, [userId])
