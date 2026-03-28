@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
-import { LayoutDashboard, Building2, CalendarDays, Trophy, ArrowLeft, Loader2 } from 'lucide-react'
+import { LayoutDashboard, Building2, CalendarDays, Trophy, GraduationCap, ArrowLeft, Loader2 } from 'lucide-react'
 
 const NAV = [
-  { href: '/admin',             label: 'Дашборд',      icon: LayoutDashboard },
-  { href: '/admin/universities', label: 'Университеты', icon: Building2 },
-  { href: '/admin/deadlines',    label: 'Дедлайны',     icon: CalendarDays },
-  { href: '/admin/rankings',     label: 'Рейтинги',     icon: Trophy },
+  { href: '/admin',              label: 'Дашборд',        icon: LayoutDashboard },
+  { href: '/admin/universities', label: 'Университеты',   icon: Building2 },
+  { href: '/admin/majors',       label: 'Специальности',  icon: GraduationCap },
+  { href: '/admin/deadlines',    label: 'Дедлайны',       icon: CalendarDays },
+  { href: '/admin/rankings',     label: 'Рейтинги',       icon: Trophy },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -88,15 +88,19 @@ export async function getUniversityById(id: string): Promise<University | null> 
       country:countries!main_country_id(*),
       city:cities!main_city_id(*),
       rankings:university_rankings(
-        id, position, year,
-        source:ranking_sources(name)
+        id, position, year, score,
+        source:ranking_sources(name, website_url)
       ),
       campuses(
         *,
         country:countries(flag_icon, name),
         city:cities(name)
       ),
-      deadlines:university_deadlines(id, type, date, description)
+      deadlines:university_deadlines(id, type, date, description),
+      majors:university_majors(
+        id, degree_level, required_ent, required_sat, required_gpa, budget_places, paid_places,
+        major:majors(id, name, code)
+      )
     `)
     .eq('id', id)
     .single()

@@ -36,8 +36,8 @@ export default function UniversityCard({ university }: { university: University 
             <Image
               src={university.photo_url}
               alt={university.name}
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
+              fill quality={85}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="object-cover opacity-70 group-hover:opacity-90 transition-opacity duration-500 scale-[1.02] group-hover:scale-100"
             />
             {/* scrim */}

@@ -1,24 +1,25 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
-import { Plus, Trash2, Loader2, X } from 'lucide-react'
+import { Plus, Trash2, Loader2, X, Pencil } from 'lucide-react'
 
-interface Ranking       { id: string; position: number; year: number; score: number | null; university: { name: string } | null; source: { name: string } | null }
+interface Ranking       { id: string; position: number; year: number; score: number | null; university: { id: string; name: string } | null; source: { id: string; name: string } | null }
 interface University    { id: string; name: string }
 interface RankingSource { id: string; name: string }
 
 const EMPTY = { university_id: '', ranking_source_id: '', year: new Date().getFullYear().toString(), position: '', score: '' }
 
 export default function AdminRankings() {
-  const [rankings,  setRankings]  = useState<Ranking[]>([])
+  const [rankings,     setRankings]     = useState<Ranking[]>([])
   const [universities, setUniversities] = useState<University[]>([])
-  const [sources,   setSources]   = useState<RankingSource[]>([])
-  const [open,      setOpen]      = useState(false)
-  const [newSource, setNewSource] = useState('')
-  const [addSource, setAddSource] = useState(false)
-  const [form,      setForm]      = useState({ ...EMPTY })
-  const [saving,    setSaving]    = useState(false)
-  const [search,    setSearch]    = useState('')
+  const [sources,      setSources]      = useState<RankingSource[]>([])
+  const [open,         setOpen]         = useState(false)
+  const [editingId,    setEditingId]    = useState<string | null>(null)
+  const [newSource,    setNewSource]    = useState('')
+  const [addSource,    setAddSource]    = useState(false)
+  const [form,         setForm]         = useState({ ...EMPTY })
+  const [saving,       setSaving]       = useState(false)
+  const [search,       setSearch]       = useState('')
 
   const supabase = createSupabaseBrowserClient()
 
@@ -26,8 +27,9 @@ export default function AdminRankings() {
 
   async function load() {
     const [{ data: r }, { data: u }, { data: s }] = await Promise.all([
-      supabase.from('university_rankings')
-        .select('id, position, year, score, university:universities(name), source:ranking_sources(name)')
+      supabase
+        .from('university_rankings')
+        .select('id, position, year, score, university:universities(id, name), source:ranking_sources(id, name)')
         .order('position'),
       supabase.from('universities').select('id, name').order('name'),
       supabase.from('ranking_sources').select('id, name').order('name'),
@@ -45,19 +47,47 @@ export default function AdminRankings() {
     setAddSource(false)
   }
 
+  function openAdd() {
+    setEditingId(null)
+    setForm({ ...EMPTY })
+    setOpen(true)
+  }
+
+  function openEdit(r: Ranking) {
+    setEditingId(r.id)
+    setForm({
+      university_id:     r.university?.id ?? '',
+      ranking_source_id: r.source?.id ?? '',
+      year:              r.year.toString(),
+      position:          r.position.toString(),
+      score:             r.score?.toString() ?? '',
+    })
+    setOpen(true)
+  }
+
+  function closeModal() {
+    setOpen(false)
+    setEditingId(null)
+    setForm({ ...EMPTY })
+  }
+
   async function handleSave() {
     if (!form.university_id || !form.ranking_source_id || !form.year || !form.position) return
     setSaving(true)
-    await supabase.from('university_rankings').insert({
+    const payload = {
       university_id:     form.university_id,
       ranking_source_id: form.ranking_source_id,
       year:              parseInt(form.year),
       position:          parseInt(form.position),
       score:             form.score ? parseFloat(form.score) : null,
-    })
+    }
+    if (editingId) {
+      await supabase.from('university_rankings').update(payload).eq('id', editingId)
+    } else {
+      await supabase.from('university_rankings').insert(payload)
+    }
     setSaving(false)
-    setOpen(false)
-    setForm({ ...EMPTY })
+    closeModal()
     load()
   }
 
@@ -81,7 +111,7 @@ export default function AdminRankings() {
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">Рейтинги</h1>
           <p className="text-sm text-[var(--text-tertiary)] mt-0.5">{rankings.length} записей</p>
         </div>
-        <button onClick={() => setOpen(true)} className="btn-primary flex items-center gap-2 text-sm">
+        <button onClick={openAdd} className="btn-primary flex items-center gap-2 text-sm">
           <Plus size={15} strokeWidth={2} /> Добавить
         </button>
       </div>
@@ -101,7 +131,7 @@ export default function AdminRankings() {
               <th className="text-left p-4 t-label font-medium">Год</th>
               <th className="text-left p-4 t-label font-medium">Позиция</th>
               <th className="text-left p-4 t-label font-medium">Балл</th>
-              <th className="p-4 w-12" />
+              <th className="p-4 w-20" />
             </tr>
           </thead>
           <tbody>
@@ -113,9 +143,14 @@ export default function AdminRankings() {
                 <td className="p-4 text-violet-400 font-bold">#{r.position}</td>
                 <td className="p-4 text-[var(--text-tertiary)]">{r.score ?? '—'}</td>
                 <td className="p-4">
-                  <button onClick={() => handleDelete(r.id)} className="text-[var(--text-quaternary)] hover:text-red-400 transition">
-                    <Trash2 size={14} strokeWidth={1.5} />
-                  </button>
+                  <div className="flex items-center gap-3 justify-end">
+                    <button onClick={() => openEdit(r)} className="text-[var(--text-quaternary)] hover:text-[var(--text-primary)] transition">
+                      <Pencil size={14} strokeWidth={1.5} />
+                    </button>
+                    <button onClick={() => handleDelete(r.id)} className="text-[var(--text-quaternary)] hover:text-red-400 transition">
+                      <Trash2 size={14} strokeWidth={1.5} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -130,8 +165,10 @@ export default function AdminRankings() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-[var(--text-primary)]">Новый рейтинг</h2>
-              <button onClick={() => setOpen(false)} className="text-[var(--text-quaternary)] hover:text-[var(--text-primary)] transition">
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">
+                {editingId ? 'Редактировать рейтинг' : 'Новый рейтинг'}
+              </h2>
+              <button onClick={closeModal} className="text-[var(--text-quaternary)] hover:text-[var(--text-primary)] transition">
                 <X size={18} strokeWidth={1.5} />
               </button>
             </div>
@@ -182,10 +219,10 @@ export default function AdminRankings() {
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setOpen(false)} className="btn-secondary flex-1">Отмена</button>
+              <button onClick={closeModal} className="btn-secondary flex-1">Отмена</button>
               <button onClick={handleSave} disabled={saving || !canSave} className="btn-primary flex-1 flex items-center justify-center gap-2">
                 {saving && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />}
-                Сохранить
+                {editingId ? 'Сохранить' : 'Добавить'}
               </button>
             </div>
           </div>

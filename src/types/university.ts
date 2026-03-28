@@ -15,25 +15,55 @@ export interface City {
 export interface University {
   id: string
   name: string
+  name_ru?: string | null
+  aliases?: string | null
   description_short: string | null
   description_full: string | null
+  key_features: string | null
   website_url: string | null
   type: string | null
+  campus_format: string | null
   has_campus: boolean
   has_dormitory: boolean
   photo_url: string | null
+  logo_url: string | null
   main_country_id: string | null
   main_city_id: string | null
   created_at: string
   updated_at: string
+  // Infrastructure
+  infrastructure: string[] | null
+  // Costs
+  tuition_usd: number | null
+  housing_usd: number | null
+  total_cost_note: string | null
+  // Admission requirements
+  gpa_min: number | null
+  sat_min: number | null
+  act_min: number | null
+  ent_min: number | null
+  ielts_min: number | null
+  toefl_min: number | null
+  documents_required: string[] | null
+  // Bachelor's
+  degree_language: string | null
+  degree_duration: number | null
+  // Competitiveness
+  acceptance_rate: number | null
+  selection_criteria: string | null
+  // Social media
+  social_instagram: string | null
+  social_youtube: string | null
+  social_linkedin: string | null
+  social_facebook: string | null
+  social_x: string | null
+  // Relations
   country?: Country
   city?: City
   rankings?: UniversityRanking[]
   campuses?: Campus[]
   majors?: UniversityMajor[]
   deadlines?: UniversityDeadline[]
-  name_ru?: string | null
-  aliases?: string | null
 }
 
 export interface Campus {
