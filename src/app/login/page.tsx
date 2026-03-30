@@ -59,10 +59,12 @@ export default function LoginPage() {
           setAwaitingConfirm(true)
           return
         }
+        router.refresh()
         router.push('/profile')
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
+        router.refresh()
         router.push('/profile')
       }
     } catch (err: any) {
