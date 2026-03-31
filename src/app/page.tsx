@@ -120,9 +120,6 @@ export default function Home() {
             <Link href="/profile" className="btn-primary px-8">
               Начать бесплатно
             </Link>
-            <Link href="/universities" className="btn-secondary px-8">
-              Университеты
-            </Link>
           </motion.div>
 
         </div>

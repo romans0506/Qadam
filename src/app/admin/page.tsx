@@ -2,24 +2,20 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
-import { Building2, CalendarDays, Trophy, Users, LayoutTemplate, GraduationCap } from 'lucide-react'
+import { Building2, Users, GraduationCap } from 'lucide-react'
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ universities: 0, deadlines: 0, rankings: 0, users: 0, majors: 0 })
+  const [stats, setStats] = useState({ universities: 0, users: 0, majors: 0 })
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
     Promise.all([
       supabase.from('universities').select('*', { count: 'exact', head: true }),
-      supabase.from('university_deadlines').select('*', { count: 'exact', head: true }),
-      supabase.from('university_rankings').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('majors').select('*', { count: 'exact', head: true }),
-    ]).then(([u, d, r, p, m]) => {
+    ]).then(([u, p, m]) => {
       setStats({
         universities: u.count ?? 0,
-        deadlines:    d.count ?? 0,
-        rankings:     r.count ?? 0,
         users:        p.count ?? 0,
         majors:       m.count ?? 0,
       })
@@ -27,12 +23,9 @@ export default function AdminDashboard() {
   }, [])
 
   const cards = [
-    { label: 'Университеты', value: stats.universities, icon: Building2,   href: '/admin/universities', color: 'text-indigo-400' },
-    { label: 'Дедлайны',     value: stats.deadlines,    icon: CalendarDays, href: '/admin/deadlines',    color: 'text-amber-400'  },
-    { label: 'Рейтинги',     value: stats.rankings,     icon: Trophy,       href: '/admin/rankings',     color: 'text-violet-400' },
-    { label: 'Пользователи', value: stats.users,        icon: Users,        href: '#',                   color: 'text-emerald-400' },
-    { label: 'Специальности', value: stats.majors,      icon: GraduationCap,  href: '/admin/majors',     color: 'text-rose-400' },
-    { label: 'Шаблоны',     value: 0,                  icon: LayoutTemplate, href: '/admin/templates',  color: 'text-cyan-400' },
+    { label: 'Университеты',  value: stats.universities, icon: Building2,      href: '/admin/universities', color: 'text-indigo-400' },
+    { label: 'Пользователи',  value: stats.users,        icon: Users,          href: '#',                   color: 'text-emerald-400' },
+    { label: 'Специальности', value: stats.majors,       icon: GraduationCap,  href: '/admin/majors',       color: 'text-rose-400' },
   ]
 
   return (
@@ -54,10 +47,7 @@ export default function AdminDashboard() {
         <p className="t-label mb-4">Быстрые действия</p>
         <div className="flex flex-wrap gap-3">
           <Link href="/admin/universities" className="btn-secondary text-sm">+ Добавить университет</Link>
-          <Link href="/admin/deadlines"    className="btn-secondary text-sm">+ Добавить дедлайн</Link>
-          <Link href="/admin/rankings"     className="btn-secondary text-sm">+ Добавить рейтинг</Link>
-          <Link href="/admin/majors"      className="btn-secondary text-sm">+ Добавить специальность</Link>
-          <Link href="/admin/templates"   className="btn-secondary text-sm">+ Добавить шаблон</Link>
+          <Link href="/admin/majors"       className="btn-secondary text-sm">+ Добавить специальность</Link>
         </div>
       </div>
     </div>

@@ -9,8 +9,7 @@ const NAV = [
   { href: '/admin',              label: 'Дашборд',        icon: LayoutDashboard },
   { href: '/admin/universities', label: 'Университеты',   icon: Building2 },
   { href: '/admin/majors',       label: 'Специальности',  icon: GraduationCap },
-  { href: '/admin/deadlines',    label: 'Дедлайны',       icon: CalendarDays },
-  { href: '/admin/rankings',     label: 'Рейтинги',       icon: Trophy },
+  
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
