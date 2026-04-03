@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 const links = [
   { href: '/universities', label: 'Университеты' },
-  { href: '/rankings', label: 'Рейтинги' },
+  { href: '/news', label: 'Новости' },
   { href: '/tests', label: 'Тесты' },
   { href: '/calendar', label: 'Календарь' },
   { href: '/assistant', label: 'AI', dot: true },

@@ -4,6 +4,7 @@ import { getUniversities, getCountries, getMajors } from '@/services/universityS
 import { University, Country, Major } from '@/types/university'
 import UniversityCard from '@/components/universities/UniversityCard'
 import UniversityFilters from '@/components/universities/UniversityFilters'
+import UniversitiesSubNav from '@/components/universities/UniversitiesSubNav'
 
 const PAGE_SIZE = 20
 
@@ -77,12 +78,15 @@ export default function UniversitiesPage() {
       <div className="max-w-6xl mx-auto px-6 py-18">
 
         {/* ── Page header ──────────────────────────────────────────────── */}
-        <div className="mb-16">
-          <h1 className="t-headline mb-4">Университеты</h1>
+        <div className="mb-10">
+          <h1 className="t-headline mb-2">Университеты</h1>
           <p className="t-body max-w-xl">
             Найди свой университет мечты — фильтруй по стране, специальности и условиям поступления.
           </p>
         </div>
+
+        {/* ── Sub-nav ──────────────────────────────────────────────────── */}
+        <UniversitiesSubNav active="list" />
 
         {/* ── Search ───────────────────────────────────────────────────── */}
         <div className="relative mb-8">

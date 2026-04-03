@@ -107,8 +107,10 @@ export default async function UniversityDetailPage({ params }: PageProps) {
 
   // Fallback to mock if DB field is empty  (TODO: fill via admin panel)
   const infrastructure   = (university.infrastructure?.length   ? university.infrastructure.map(v => ({ label: v, value: '' })) : null)
-  const tuition          = university.tuition_usd   ?? null          // TODO: DB
-  const housing          = university.housing_usd   ?? null          // TODO: DB
+  const tuition          = university.tuition_usd     ?? null
+  const tuitionMax       = university.tuition_usd_max ?? null
+  const housing          = university.housing_usd     ?? null
+  const housingMax       = university.housing_usd_max ?? null
   const acceptanceRate   = university.acceptance_rate ?? null        // TODO: DB
   const ieltsMin         = university.ielts_min     ?? null
   const toeflMin         = university.toefl_min     ?? null
@@ -315,22 +317,13 @@ export default async function UniversityDetailPage({ params }: PageProps) {
 
                 {/* Faculties list */}
                 <div className="flex flex-col gap-3">
-                  {university.majors
-                    .filter(um => !um.degree_level || um.degree_level === 'bachelor')
-                    .map(um => (
+                  {university.majors.map(um => (
                       <div
                         key={um.id}
                         className="flex items-start justify-between gap-4 p-5 rounded-[var(--radius-inner)] bg-white/[0.03] border border-white/[0.05] hover:border-white/[0.09] transition-colors"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[var(--text-primary)] mb-3">{um.major?.name}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {um.required_ent  && <Pill color="amber">ЕНТ {um.required_ent}+</Pill>}
-                            {um.required_gpa  && <Pill color="accent">GPA {um.required_gpa}+</Pill>}
-                            {um.required_sat  && <Pill color="violet">SAT {um.required_sat}+</Pill>}
-                            {um.budget_places && <Pill color="emerald">Грант · {um.budget_places} мест</Pill>}
-                            {um.paid_places   && <Pill>Платно · {um.paid_places} мест</Pill>}
-                          </div>
+                          <p className="text-sm font-semibold text-[var(--text-primary)]">{um.major?.name}</p>
                         </div>
                         {um.degree_level && (
                           <span className="text-[11px] font-medium text-[var(--text-quaternary)] shrink-0 mt-0.5">
@@ -348,16 +341,27 @@ export default async function UniversityDetailPage({ params }: PageProps) {
               <SectionHeading icon={DollarSign} label="Стоимость обучения · 2024–25" />
               {!tuition && !housing && (
                 <p className="text-[10px] text-amber-400/60 mb-5 font-mono">
-                  {/* TODO: fill via Admin → Университеты → Стоимость */}
                   ⚠ Демо-данные · заполни через панель администратора
                 </p>
               )}
               <div className="grid grid-cols-3 gap-4">
-                {[
-                  { label: 'Обучение / год',   value: formatUSD(tuition ?? 57_986), note: 'Tuition & Fees' },
-                  { label: 'Проживание / год',  value: formatUSD(housing ?? 17_960), note: 'Room & Board'  },
-                  { label: 'Итого / год',       value: formatUSD((tuition ?? 57_986) + (housing ?? 17_960)), note: 'Estimated Total', highlight: true },
-                ].map(({ label, value, note, highlight }) => (
+                {(() => {
+                  const t = tuition ?? 57_986
+                  const tMax = tuitionMax
+                  const h = housing ?? 17_960
+                  const hMax = housingMax
+                  const totalMin = t + h
+                  const totalMax = tMax != null || hMax != null ? (tMax ?? t) + (hMax ?? h) : null
+                  const fmtRange = (min: number, max: number | null) =>
+                    max != null && max !== min
+                      ? `${formatUSD(min)} – ${formatUSD(max)}`
+                      : formatUSD(min)
+                  return [
+                    { label: 'Обучение / год',  value: fmtRange(t, tMax),          note: 'Tuition & Fees'   },
+                    { label: 'Проживание / год', value: fmtRange(h, hMax),          note: 'Room & Board'     },
+                    { label: 'Итого / год',      value: fmtRange(totalMin, totalMax), note: 'Estimated Total', highlight: true },
+                  ]
+                })().map(({ label, value, note, highlight }) => (
                   <div
                     key={label}
                     className={`p-6 rounded-[var(--radius-inner)] flex flex-col gap-1.5 border ${
@@ -367,7 +371,7 @@ export default async function UniversityDetailPage({ params }: PageProps) {
                     }`}
                   >
                     <p className={`text-[11px] font-semibold uppercase tracking-wider ${highlight ? 'text-[var(--accent)]' : 'text-[var(--text-quaternary)]'}`}>{label}</p>
-                    <p className={`text-xl font-bold leading-none ${highlight ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{value}</p>
+                    <p className={`text-lg font-bold leading-tight ${highlight ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{value}</p>
                     <p className="text-[11px] text-[var(--text-quaternary)]">{note}</p>
                   </div>
                 ))}
@@ -431,22 +435,31 @@ export default async function UniversityDetailPage({ params }: PageProps) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 {[
-                  { d: earlyDeadline,   tag: '⚡ Early Decision',   tagColor: 'text-amber-400',          border: 'border-amber-400/20'   },
-                  { d: regularDeadline, tag: '📅 Regular Decision', tagColor: 'text-[var(--accent)]',   border: 'border-[var(--accent)]/20' },
+                  { d: earlyDeadline,   tag: '⚡ Early Decision',   tagColor: 'text-amber-400',        border: 'border-amber-400/20'       },
+                  { d: regularDeadline, tag: '📅 Regular Decision', tagColor: 'text-[var(--accent)]', border: 'border-[var(--accent)]/20' },
                 ].map(({ d, tag, tagColor, border }) => {
                   if (!d) return null
-                  const date   = new Date(d.date)
-                  const now    = new Date()
-                  const days   = Math.ceil((date.getTime() - now.getTime()) / 86_400_000)
-                  const passed = days < 0
+                  const date    = new Date(d.date)
+                  const dateEnd = d.date_end ? new Date(d.date_end) : null
+                  const refDate = dateEnd ?? date
+                  const days    = Math.ceil((refDate.getTime() - Date.now()) / 86_400_000)
+                  const passed  = days < 0
                   return (
                     <div key={d.id} className={`p-6 rounded-[var(--radius-inner)] bg-white/[0.03] border ${passed ? 'border-white/[0.05]' : border}`}>
                       <p className={`text-[10px] font-bold uppercase tracking-wider mb-3 ${passed ? 'text-[var(--text-quaternary)]' : tagColor}`}>
                         {tag}
                       </p>
-                      <p className={`text-xl font-bold mb-1 leading-none ${passed ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-primary)]'}`}>
-                        {date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                      </p>
+                      {dateEnd ? (
+                        <p className={`text-base font-bold mb-1 leading-snug ${passed ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-primary)]'}`}>
+                          {date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                          {' – '}
+                          {dateEnd.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                      ) : (
+                        <p className={`text-xl font-bold mb-1 leading-none ${passed ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-primary)]'}`}>
+                          {date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                      )}
                       <p className={`text-xs mb-4 ${passed ? 'text-[var(--text-quaternary)]' : days <= 30 ? 'text-amber-400' : 'text-[var(--text-tertiary)]'}`}>
                         {passed ? 'Срок истёк' : `Осталось ${days} дн.`}
                       </p>
@@ -467,15 +480,19 @@ export default async function UniversityDetailPage({ params }: PageProps) {
               {otherDeadlines.length > 0 && (
                 <div className="flex flex-col divide-y divide-[var(--border)] mb-6">
                   {otherDeadlines.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(d => {
-                    const date   = new Date(d.date)
-                    const days   = Math.ceil((date.getTime() - Date.now()) / 86_400_000)
-                    const passed = days < 0
+                    const date    = new Date(d.date)
+                    const dateEnd = d.date_end ? new Date(d.date_end) : null
+                    const refDate = dateEnd ?? date
+                    const days    = Math.ceil((refDate.getTime() - Date.now()) / 86_400_000)
+                    const passed  = days < 0
                     return (
                       <div key={d.id} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
                         <p className={`text-sm font-medium ${passed ? 'text-[var(--text-quaternary)] line-through' : 'text-[var(--text-primary)]'}`}>{d.type}</p>
                         <div className="flex items-center gap-3 shrink-0">
                           <span className={`text-sm font-semibold ${passed ? 'text-[var(--text-quaternary)]' : 'text-[var(--text-primary)]'}`}>
-                            {date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                            {dateEnd
+                              ? `${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} – ${dateEnd.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
+                              : date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
                           </span>
                           {!passed && (
                             <DeadlineCalendarButton
@@ -645,10 +662,14 @@ export default async function UniversityDetailPage({ params }: PageProps) {
                   <DollarSign size={13} strokeWidth={1.5} className="text-[var(--text-quaternary)] mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[10px] text-[var(--text-quaternary)] uppercase tracking-wider font-semibold mb-1.5">Стоимость / год</p>
-                    {tuition && <p className="text-xs text-[var(--text-tertiary)]">Обучение: {formatUSD(tuition)}</p>}
-                    {housing && <p className="text-xs text-[var(--text-tertiary)]">Проживание: {formatUSD(housing)}</p>}
+                    {tuition && <p className="text-xs text-[var(--text-tertiary)]">Обучение: {tuitionMax && tuitionMax !== tuition ? `${formatUSD(tuition)} – ${formatUSD(tuitionMax)}` : formatUSD(tuition)}</p>}
+                    {housing && <p className="text-xs text-[var(--text-tertiary)]">Проживание: {housingMax && housingMax !== housing ? `${formatUSD(housing)} – ${formatUSD(housingMax)}` : formatUSD(housing)}</p>}
                     {tuition && housing && (
-                      <p className="text-sm font-bold text-[var(--accent)] mt-1.5">{formatUSD(tuition + housing)}</p>
+                      <p className="text-sm font-bold text-[var(--accent)] mt-1.5">
+                        {(tuitionMax ?? 0) > 0 || (housingMax ?? 0) > 0
+                          ? `${formatUSD(tuition + housing)} – ${formatUSD((tuitionMax ?? tuition) + (housingMax ?? housing))}`
+                          : formatUSD(tuition + housing)}
+                      </p>
                     )}
                   </div>
                 </div>

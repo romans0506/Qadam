@@ -10,7 +10,8 @@ interface University {
   has_dormitory: boolean; has_campus: boolean; aliases: string | null
   campus_format: string | null
   infrastructure: string[] | null
-  tuition_usd: number | null; housing_usd: number | null; total_cost_note: string | null
+  tuition_usd: number | null; tuition_usd_max: number | null
+  housing_usd: number | null; housing_usd_max: number | null; total_cost_note: string | null
   gpa_min: number | null; sat_min: number | null; act_min: number | null; ent_min: number | null
   ielts_min: number | null; toefl_min: number | null
   documents_required: string[] | null
@@ -22,12 +23,10 @@ interface University {
 interface Country { id: string; name: string }
 interface RankingSource { id: string; name: string }
 interface Ranking { id: string; ranking_source_id: string; year: number; position: number; score: number | null; source?: { name: string } | null }
-interface Deadline { id: string; type: string; date: string; description: string | null }
+interface Deadline { id: string; type: string; date: string; date_end: string | null; description: string | null }
 interface Major { id: string; name: string; code: string | null }
 interface UniversityMajor {
   id: string; major_id: string; degree_level: string | null
-  required_ent: number | null; required_sat: number | null; required_gpa: number | null
-  budget_places: number | null; paid_places: number | null
   major?: Major
 }
 
@@ -58,7 +57,7 @@ const EMPTY = {
   description_full: '', key_features: '', photo_url: '', logo_url: '', main_country_id: '',
   has_dormitory: false, has_campus: false, aliases: '', campus_format: '',
   infra_0: '', infra_1: '', infra_2: '', infra_3: '', infra_4: '', infra_5: '',
-  tuition_usd: '', housing_usd: '', total_cost_note: '',
+  tuition_usd: '', tuition_usd_max: '', housing_usd: '', housing_usd_max: '', total_cost_note: '',
   gpa_min: '', sat_min: '', act_min: '', ent_min: '', ielts_min: '', toefl_min: '',
   documents_required: '',
   degree_language: '', degree_duration: '',
@@ -67,8 +66,8 @@ const EMPTY = {
 }
 
 const EMPTY_RANKING  = { ranking_source_id: '', year: new Date().getFullYear().toString(), position: '', score: '' }
-const EMPTY_DEADLINE = { type: '', custom_type: '', date: '', description: '' }
-const EMPTY_UMAJOR   = { major_id: '', degree_level: 'bachelor', required_ent: '', required_sat: '', required_gpa: '', budget_places: '', paid_places: '' }
+const EMPTY_DEADLINE = { type: '', custom_type: '', date: '', date_end: '', description: '' }
+const EMPTY_UMAJOR   = { major_id: '', degree_level: 'bachelor' }
 
 type Tab = 'basic' | 'details' | 'costs' | 'requirements' | 'social' | 'rankings' | 'deadlines' | 'majors'
 
@@ -145,18 +144,20 @@ export default function AdminUniversities() {
   const loadDeadlines = useCallback(async (uid: string) => {
     const { data } = await supabase
       .from('university_deadlines')
-      .select('id, type, date, description')
+      .select('id, type, date, date_end, description')
       .eq('university_id', uid)
       .order('date')
     setDeadlines((data ?? []) as Deadline[])
   }, [supabase])
 
   const loadUniMajors = useCallback(async (uid: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('university_majors')
-      .select('id, major_id, degree_level, required_ent, required_sat, required_gpa, budget_places, paid_places, major:majors(id, name, code)')
+      .select('id, major_id, degree_level, major:majors(id, name, code)')
       .eq('university_id', uid)
       .order('major_id')
+    if (error) console.error('Load university_majors error:', error.message, error.code)
+    console.log('Loaded university_majors:', data)
     setUniMajors((data ?? []) as unknown as UniversityMajor[])
   }, [supabase])
 
@@ -194,7 +195,9 @@ export default function AdminUniversities() {
       infra_4:            u.infrastructure?.[4] ?? '',
       infra_5:            u.infrastructure?.[5] ?? '',
       tuition_usd:        u.tuition_usd?.toString() ?? '',
+      tuition_usd_max:    u.tuition_usd_max?.toString() ?? '',
       housing_usd:        u.housing_usd?.toString() ?? '',
+      housing_usd_max:    u.housing_usd_max?.toString() ?? '',
       total_cost_note:    u.total_cost_note ?? '',
       gpa_min:            u.gpa_min?.toString() ?? '',
       sat_min:            (u as any).sat_min?.toString() ?? '',
@@ -267,7 +270,9 @@ export default function AdminUniversities() {
                           ? [form.infra_0, form.infra_1, form.infra_2, form.infra_3, form.infra_4, form.infra_5].map(s => s.trim())
                           : null,
       tuition_usd:        form.tuition_usd     ? parseInt(form.tuition_usd)     : null,
+      tuition_usd_max:    form.tuition_usd_max ? parseInt(form.tuition_usd_max) : null,
       housing_usd:        form.housing_usd     ? parseInt(form.housing_usd)     : null,
+      housing_usd_max:    form.housing_usd_max ? parseInt(form.housing_usd_max) : null,
       total_cost_note:    form.total_cost_note || null,
       gpa_min:            form.gpa_min         ? clamp(parseFloat(form.gpa_min),  0, 4)     : null,
       sat_min:            form.sat_min         ? clamp(parseInt(form.sat_min),    400, 1600) : null,
@@ -356,6 +361,7 @@ export default function AdminUniversities() {
       university_id: editingId,
       type,
       date:        dlForm.date,
+      date_end:    dlForm.date_end || null,
       description: dlForm.description || null,
     }
     if (dlEditId) {
@@ -381,6 +387,7 @@ export default function AdminUniversities() {
       type:        isKnown ? d.type : '__custom__',
       custom_type: isKnown ? '' : d.type,
       date:        d.date.slice(0, 10),
+      date_end:    d.date_end ? d.date_end.slice(0, 10) : '',
       description: d.description ?? '',
     })
   }
@@ -393,16 +400,13 @@ export default function AdminUniversities() {
       university_id: editingId,
       major_id:      umForm.major_id,
       degree_level:  umForm.degree_level || null,
-      required_ent:  umForm.required_ent  ? parseInt(umForm.required_ent)   : null,
-      required_sat:  umForm.required_sat  ? parseInt(umForm.required_sat)   : null,
-      required_gpa:  umForm.required_gpa  ? parseFloat(umForm.required_gpa) : null,
-      budget_places: umForm.budget_places ? parseInt(umForm.budget_places)  : null,
-      paid_places:   umForm.paid_places   ? parseInt(umForm.paid_places)    : null,
     }
     if (umEditId) {
-      await supabase.from('university_majors').update(payload).eq('id', umEditId)
+      const { error } = await supabase.from('university_majors').update(payload).eq('id', umEditId)
+      if (error) console.error('Update university_major error:', error)
     } else {
-      await supabase.from('university_majors').insert(payload)
+      const { error } = await supabase.from('university_majors').insert(payload)
+      if (error) console.error('Insert university_major error:', error.message, error.code, error.details, error.hint)
     }
     setUmSaving(false)
     resetUmForm()
@@ -419,12 +423,7 @@ export default function AdminUniversities() {
     setUmEditId(um.id)
     setUmForm({
       major_id:      um.major_id,
-      degree_level:  um.degree_level ?? 'bachelor',
-      required_ent:  um.required_ent != null  ? String(um.required_ent)  : '',
-      required_sat:  um.required_sat != null  ? String(um.required_sat)  : '',
-      required_gpa:  um.required_gpa != null  ? String(um.required_gpa) : '',
-      budget_places: um.budget_places != null ? String(um.budget_places) : '',
-      paid_places:   um.paid_places != null   ? String(um.paid_places)   : '',
+      degree_level:  um.degree_level ?? 'bachelor'
     })
   }
 
@@ -640,16 +639,32 @@ export default function AdminUniversities() {
               {/* ── TAB: Costs ── */}
               {tab === 'costs' && (
                 <div className="flex flex-col gap-4">
-                  <p className="text-xs text-[var(--text-tertiary)]">Актуальные данные на учебный год. Сумма в долларах США (USD).</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <label className="flex flex-col gap-1.5">
-                      <span className="admin-label">Tuition / год ($)</span>
-                      <input type="number" className="inp" value={f('tuition_usd')} onChange={e => set('tuition_usd', e.target.value)} placeholder="55000" />
-                    </label>
-                    <label className="flex flex-col gap-1.5">
-                      <span className="admin-label">Проживание / год ($)</span>
-                      <input type="number" className="inp" value={f('housing_usd')} onChange={e => set('housing_usd', e.target.value)} placeholder="18000" />
-                    </label>
+                  <p className="text-xs text-[var(--text-tertiary)]">Актуальные данные на учебный год. Сумма в долларах США (USD). Если стоимость фиксирована — заполни только минимум.</p>
+                  <div className="flex flex-col gap-3">
+                    <p className="text-[10px] font-semibold text-[var(--text-quaternary)] uppercase tracking-wider">Tuition / год ($)</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="flex flex-col gap-1">
+                        <span className="admin-label">От</span>
+                        <input type="number" className="inp" value={f('tuition_usd')} onChange={e => set('tuition_usd', e.target.value)} placeholder="40000" />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="admin-label">До (необязательно)</span>
+                        <input type="number" className="inp" value={f('tuition_usd_max')} onChange={e => set('tuition_usd_max', e.target.value)} placeholder="60000" />
+                      </label>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <p className="text-[10px] font-semibold text-[var(--text-quaternary)] uppercase tracking-wider">Проживание / год ($)</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="flex flex-col gap-1">
+                        <span className="admin-label">От</span>
+                        <input type="number" className="inp" value={f('housing_usd')} onChange={e => set('housing_usd', e.target.value)} placeholder="10000" />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="admin-label">До (необязательно)</span>
+                        <input type="number" className="inp" value={f('housing_usd_max')} onChange={e => set('housing_usd_max', e.target.value)} placeholder="20000" />
+                      </label>
+                    </div>
                   </div>
                   <label className="flex flex-col gap-1.5">
                     <span className="admin-label">Примечание к стоимости</span>
@@ -766,30 +781,6 @@ export default function AdminUniversities() {
                             </select>
                           </label>
                         </div>
-                        <div className="grid grid-cols-3 gap-3">
-                          <label className="flex flex-col gap-1">
-                            <span className="admin-label">GPA мин.</span>
-                            <input type="number" step="0.1" min="0" max="4" className="inp" placeholder="3.5" value={umForm.required_gpa} onChange={e => setUmForm(f => ({ ...f, required_gpa: e.target.value }))} />
-                          </label>
-                          <label className="flex flex-col gap-1">
-                            <span className="admin-label">ЕНТ мин.</span>
-                            <input type="number" min="0" max="140" className="inp" placeholder="80" value={umForm.required_ent} onChange={e => setUmForm(f => ({ ...f, required_ent: e.target.value }))} />
-                          </label>
-                          <label className="flex flex-col gap-1">
-                            <span className="admin-label">SAT мин.</span>
-                            <input type="number" min="400" max="1600" className="inp" placeholder="1200" value={umForm.required_sat} onChange={e => setUmForm(f => ({ ...f, required_sat: e.target.value }))} />
-                          </label>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <label className="flex flex-col gap-1">
-                            <span className="admin-label">Грант (мест)</span>
-                            <input type="number" min="0" className="inp" placeholder="25" value={umForm.budget_places} onChange={e => setUmForm(f => ({ ...f, budget_places: e.target.value }))} />
-                          </label>
-                          <label className="flex flex-col gap-1">
-                            <span className="admin-label">Платно (мест)</span>
-                            <input type="number" min="0" className="inp" placeholder="50" value={umForm.paid_places} onChange={e => setUmForm(f => ({ ...f, paid_places: e.target.value }))} />
-                          </label>
-                        </div>
                         <div className="flex gap-2">
                           {umEditId && (
                             <button onClick={resetUmForm} className="btn-secondary text-xs flex-1">Отмена</button>
@@ -813,21 +804,6 @@ export default function AdminUniversities() {
                                     <span className="px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 text-[10px] font-medium">
                                       {DEGREE_OPTIONS.find(d => d.value === um.degree_level)?.label ?? um.degree_level}
                                     </span>
-                                  )}
-                                  {um.required_gpa != null && (
-                                    <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-medium">GPA {um.required_gpa}+</span>
-                                  )}
-                                  {um.required_ent != null && (
-                                    <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-medium">ЕНТ {um.required_ent}+</span>
-                                  )}
-                                  {um.required_sat != null && (
-                                    <span className="px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 text-[10px] font-medium">SAT {um.required_sat}+</span>
-                                  )}
-                                  {um.budget_places != null && (
-                                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-medium">Грант · {um.budget_places}</span>
-                                  )}
-                                  {um.paid_places != null && (
-                                    <span className="px-2 py-0.5 rounded-full bg-white/5 text-[var(--text-tertiary)] text-[10px] font-medium">Платно · {um.paid_places}</span>
                                   )}
                                 </div>
                               </div>
@@ -969,14 +945,18 @@ export default function AdminUniversities() {
                         )}
                         <div className="grid grid-cols-2 gap-3">
                           <label className="flex flex-col gap-1">
-                            <span className="admin-label">Дата *</span>
+                            <span className="admin-label">Дата начала *</span>
                             <input type="date" className="inp" value={dlForm.date} onChange={e => setDlForm(f => ({ ...f, date: e.target.value }))} />
                           </label>
                           <label className="flex flex-col gap-1">
-                            <span className="admin-label">Описание</span>
-                            <input className="inp" value={dlForm.description} onChange={e => setDlForm(f => ({ ...f, description: e.target.value }))} placeholder="Необязательно" />
+                            <span className="admin-label">Дата окончания</span>
+                            <input type="date" className="inp" value={dlForm.date_end} onChange={e => setDlForm(f => ({ ...f, date_end: e.target.value }))} />
                           </label>
                         </div>
+                        <label className="flex flex-col gap-1">
+                          <span className="admin-label">Описание</span>
+                          <input className="inp" value={dlForm.description} onChange={e => setDlForm(f => ({ ...f, description: e.target.value }))} placeholder="Необязательно" />
+                        </label>
                         <div className="flex gap-2">
                           {dlEditId && (
                             <button onClick={resetDlForm} className="btn-secondary text-xs flex-1">Отмена</button>
@@ -1001,14 +981,14 @@ export default function AdminUniversities() {
                               </tr>
                             </thead>
                             <tbody>
-                              {deadlines.map(d => {
-                                const date = new Date(d.date)
-                                const past = date < new Date()
-                                return (
+                              {deadlines.map(d => (
                                   <tr key={d.id} className="border-b border-[var(--border)] last:border-0">
                                     <td className="p-3 text-[var(--text-secondary)]">{d.type}</td>
-                                    <td className={`p-3 font-medium ${past ? 'text-[var(--text-quaternary)]' : 'text-amber-400'}`}>
-                                      {date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    <td className="p-3 font-medium text-amber-400">
+                                      {d.date}
+                                      {d.date_end && (
+                                        <span className="text-[var(--text-quaternary)] font-normal"> → {d.date_end}</span>
+                                      )}
                                     </td>
                                     <td className="p-3 text-[var(--text-tertiary)] max-w-[140px] truncate">{d.description ?? '—'}</td>
                                     <td className="p-3">
@@ -1022,8 +1002,7 @@ export default function AdminUniversities() {
                                       </div>
                                     </td>
                                   </tr>
-                                )
-                              })}
+                              ))}
                             </tbody>
                           </table>
                         </div>

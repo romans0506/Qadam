@@ -35,7 +35,9 @@ export interface University {
   infrastructure: string[] | null
   // Costs
   tuition_usd: number | null
+  tuition_usd_max: number | null
   housing_usd: number | null
+  housing_usd_max: number | null
   total_cost_note: string | null
   // Admission requirements
   gpa_min: number | null
@@ -107,11 +109,6 @@ export interface UniversityMajor {
   university_id: string
   major_id: string
   degree_level: string | null
-  required_ent: number | null
-  required_sat: number | null
-  required_gpa: number | null
-  budget_places: number | null
-  paid_places: number | null
   major?: Major
 }
 
@@ -144,6 +141,7 @@ export interface UniversityDeadline {
   major_id: string | null
   type: string
   date: string
+  date_end: string | null
   description: string | null
 }
 

@@ -98,7 +98,7 @@ export async function getUniversityById(id: string): Promise<University | null> 
       ),
       deadlines:university_deadlines(id, type, date, description),
       majors:university_majors(
-        id, degree_level, required_ent, required_sat, required_gpa, budget_places, paid_places,
+        id, degree_level,
         major:majors(id, name, code)
       )
     `)
