@@ -274,7 +274,7 @@ export default function AdminUniversities() {
       housing_usd:        form.housing_usd     ? parseInt(form.housing_usd)     : null,
       housing_usd_max:    form.housing_usd_max ? parseInt(form.housing_usd_max) : null,
       total_cost_note:    form.total_cost_note || null,
-      gpa_min:            form.gpa_min         ? clamp(parseFloat(form.gpa_min),  0, 4)     : null,
+      gpa_min:            form.gpa_min         ? clamp(parseFloat(form.gpa_min), 0, 4) : null,
       sat_min:            form.sat_min         ? clamp(parseInt(form.sat_min),    400, 1600) : null,
       act_min:            form.act_min         ? clamp(parseInt(form.act_min),    1, 36)     : null,
       ent_min:            form.ent_min         ? clamp(parseInt(form.ent_min),    0, 140)    : null,

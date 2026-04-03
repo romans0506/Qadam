@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const prompt = `Проанализируй профиль казахстанского школьника и верни ТОЛЬКО валидный JSON без лишнего текста.
 
 Профиль:
-- GPA: ${profile?.gpa || 'нет'}
+- GPA: ${profile?.gpa != null ? `${profile.gpa}/4` : 'нет'}
 - ЕНТ: ${profile?.ent_score ? `${profile.ent_score}/140` : 'нет'}
 - SAT: ${profile?.sat_score ? `${profile.sat_score}/1600` : 'нет'}
 - ACT: ${profile?.act_score ? `${profile.act_score}/36` : 'нет'}

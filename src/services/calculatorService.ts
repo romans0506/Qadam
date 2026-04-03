@@ -25,7 +25,7 @@ export function calculateChances(data: Partial<UserProfile>): Result[] {
     .filter(s => interests.length === 0 || interests.includes(s.field))
     .map(s => {
       const entScore = (ent / s.required) * 60
-      const gpaScore = (gpa / 5) * 40
+      const gpaScore = (gpa / 4) * 40
       const chance = Math.min(Math.round(entScore + gpaScore), 95)
       const color = chance >= 70 ? 'green' : chance >= 40 ? 'yellow' : 'red'
       return { university: s.university, specialty: s.specialty, chance, color }
@@ -40,12 +40,12 @@ export function getSmartAnalysis(data: Partial<UserProfile>, results: Result[]):
 
   let analysis = ''
 
-  if (gpa >= 4.5) {
-    analysis += `У тебя отличный средний балл ${gpa} — это большой плюс! 🌟\n\n`
-  } else if (gpa >= 3.5) {
-    analysis += `Твой средний балл ${gpa} — хороший старт. Есть куда расти! 💪\n\n`
+  if (gpa >= 3.5) {
+    analysis += `У тебя отличный средний балл ${gpa}/4 — это большой плюс! 🌟\n\n`
+  } else if (gpa >= 2.5) {
+    analysis += `Твой средний балл ${gpa}/4 — хороший старт. Есть куда расти! 💪\n\n`
   } else {
-    analysis += `Средний балл ${gpa} говорит о том, что нужно усилить подготовку. Но всё реально! 🎯\n\n`
+    analysis += `Средний балл ${gpa}/4 говорит о том, что нужно усилить подготовку. Но всё реально! 🎯\n\n`
   }
 
   if (!ent) {

@@ -44,89 +44,64 @@ function formatDisplay(field: string, value: number): string {
 }
 
 export default function AcademicStats({ profile, editing, onChange }: Props) {
-  // Local raw text per field (for typing intermediate values like "1" for SAT)
+  // Local raw text per field (for typing intermediate values like "1." for decimals)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
 
   function set(field: string, value: number | undefined) {
     onChange({ ...profile, [field]: value })
   }
 
-  /* ── onChange: allow typing, filter invalid chars ─────────── */
+  /* ── onChange: only update local draft text ───────────────── */
   function handleInput(f: FieldDef, raw: string) {
     const isDecimal = f.step < 1
 
-    // Allow only digits (and one dot for decimal fields)
     let cleaned: string
     if (isDecimal) {
-      // Strip everything except digits and first dot
       cleaned = ''
       let hasDot = false
       for (const ch of raw) {
         if (ch >= '0' && ch <= '9') { cleaned += ch }
         else if (ch === '.' && !hasDot) { cleaned += '.'; hasDot = true }
       }
-      // Limit: max 1 digit before dot, max 1 digit after dot
+      // Max 1 decimal digit after dot
       const parts = cleaned.split('.')
-      if (parts[0].length > 1) parts[0] = parts[0].slice(0, 1)
       if (parts.length > 1 && parts[1].length > 1) parts[1] = parts[1].slice(0, 1)
       cleaned = parts.join('.')
     } else {
-      // Integer: digits only, limit length
       cleaned = raw.replace(/\D/g, '').slice(0, f.maxLen)
     }
 
-    // Save draft for display
     setDrafts(prev => ({ ...prev, [f.field]: cleaned }))
+  }
 
-    // Parse and store the number
-    if (cleaned === '' || cleaned === '.') {
+  /* ── onBlur: parse draft, clamp, snap, push to parent ───── */
+  function handleBlur(f: FieldDef) {
+    const draft = drafts[f.field]
+    setDrafts(prev => { const n = { ...prev }; delete n[f.field]; return n })
+
+    if (draft == null) return
+
+    if (draft === '' || draft === '.') {
       set(f.field, undefined)
       return
     }
 
-    const num = parseFloat(cleaned)
-    if (isNaN(num)) { set(f.field, undefined); return }
+    let val = parseFloat(draft)
+    if (isNaN(val)) { set(f.field, undefined); return }
 
-    // Clamp to max on the fly (but don't clamp to min — user might still be typing)
-    if (num > f.max) {
-      set(f.field, f.max)
-      setDrafts(prev => ({ ...prev, [f.field]: String(f.max) }))
-      return
-    }
-
-    set(f.field, num)
-  }
-
-  /* ── onBlur: snap to step, clamp to min, clean up ────────── */
-  function handleBlur(f: FieldDef) {
-    const current = profile[f.field as keyof UserProfile] as number | undefined
-    setDrafts(prev => { const n = { ...prev }; delete n[f.field]; return n })
-
-    if (current == null) return
-
-    let val = current
-
-    // Clamp to range
     if (val < f.min) val = f.min
     if (val > f.max) val = f.max
 
-    // Snap to step
-    if (f.step === 0.5) {
-      val = Math.round(val * 2) / 2
-    } else if (f.step === 0.1) {
-      val = Math.round(val * 10) / 10
-    } else {
-      val = Math.round(val)
-    }
+    if (f.step === 0.5) val = Math.round(val * 2) / 2
+    else if (f.step === 0.1) val = Math.round(val * 10) / 10
+    else val = Math.round(val)
 
     set(f.field, val)
   }
 
   /* ── What to show in the input ───────────────────────────── */
   function inputValue(f: FieldDef): string {
-    // If user is actively typing, show draft
     if (f.field in drafts) return drafts[f.field]
-    // Otherwise show stored value
     const v = profile[f.field as keyof UserProfile] as number | undefined
     if (v == null) return ''
     return f.step < 1 ? v.toFixed(1) : String(v)

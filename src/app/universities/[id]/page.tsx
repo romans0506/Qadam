@@ -390,7 +390,7 @@ export default async function UniversityDetailPage({ params }: PageProps) {
               {(gpaMin || satMin || actMin || entMin || ieltsMin || toeflMin) && (
                 <div className="flex flex-wrap gap-3 mb-8">
                   {[
-                    gpaMin   && { label: 'GPA',   value: `${gpaMin}+`,   cls: 'text-[var(--accent)]' },
+                    gpaMin   && { label: 'GPA',   value: `${gpaMin}+`,            cls: 'text-[var(--accent)]' },
                     satMin   && { label: 'SAT',   value: `${satMin}+`,   cls: 'text-violet-400'      },
                     actMin   && { label: 'ACT',   value: `${actMin}+`,   cls: 'text-violet-400'      },
                     entMin   && { label: 'ЕНТ',   value: `${entMin}+`,   cls: 'text-amber-400'       },
@@ -435,9 +435,9 @@ export default async function UniversityDetailPage({ params }: PageProps) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 {[
-                  { d: earlyDeadline,   tag: '⚡ Early Decision',   tagColor: 'text-amber-400',        border: 'border-amber-400/20'       },
-                  { d: regularDeadline, tag: '📅 Regular Decision', tagColor: 'text-[var(--accent)]', border: 'border-[var(--accent)]/20' },
-                ].map(({ d, tag, tagColor, border }) => {
+                  { d: earlyDeadline,   tagColor: 'text-amber-400',        border: 'border-amber-400/20'       },
+                  { d: regularDeadline, tagColor: 'text-[var(--accent)]',  border: 'border-[var(--accent)]/20' },
+                ].map(({ d, tagColor, border }) => {
                   if (!d) return null
                   const date    = new Date(d.date)
                   const dateEnd = d.date_end ? new Date(d.date_end) : null
@@ -447,7 +447,7 @@ export default async function UniversityDetailPage({ params }: PageProps) {
                   return (
                     <div key={d.id} className={`p-6 rounded-[var(--radius-inner)] bg-white/[0.03] border ${passed ? 'border-white/[0.05]' : border}`}>
                       <p className={`text-[10px] font-bold uppercase tracking-wider mb-3 ${passed ? 'text-[var(--text-quaternary)]' : tagColor}`}>
-                        {tag}
+                        {d.type}
                       </p>
                       {dateEnd ? (
                         <p className={`text-base font-bold mb-1 leading-snug ${passed ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-primary)]'}`}>

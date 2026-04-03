@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 - Город: ${profile?.city || 'не указан'}
 
 Академические показатели:
-- GPA: ${profile?.gpa ?? 'не указан'} (шкала 0-4)
+- GPA: ${profile?.gpa != null ? `${profile.gpa}/4` : 'не указан'}
 - ЕНТ: ${profile?.ent_score != null ? `${profile.ent_score}/140` : 'не сдавал'}
 - SAT: ${profile?.sat_score != null ? `${profile.sat_score}/1600` : 'не сдавал'}
 - ACT: ${profile?.act_score != null ? `${profile.act_score}/36` : 'не сдавал'}

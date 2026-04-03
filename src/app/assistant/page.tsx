@@ -34,7 +34,7 @@ function computeReadinessScore(profile: Partial<UserProfile> | null): number {
   let weight = 0
 
   if (profile.gpa) {
-    score  += (profile.gpa / 4.0) * 35
+    score  += (profile.gpa / 4) * 35
     weight += 35
   }
   if (profile.ent_score) {

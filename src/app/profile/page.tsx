@@ -122,7 +122,7 @@ export default function Profile() {
 
   /* Academic bento stats */
   const bentoStats = [
-    { label: 'GPA',   value: profile.gpa != null    ? profile.gpa.toFixed(1)       : null, max: '4.0' },
+    { label: 'GPA',   value: profile.gpa != null    ? profile.gpa.toFixed(1) : null, max: '4.0' },
     { label: 'ЕНТ',   value: profile.ent_score != null ? String(Math.round(profile.ent_score)) : null, max: '140' },
     { label: 'SAT',   value: profile.sat_score != null ? String(profile.sat_score)  : null, max: '1600' },
     { label: 'IELTS', value: profile.ielts_score != null ? profile.ielts_score.toFixed(1) : null, max: '9.0' },
