@@ -113,6 +113,10 @@ export default function AdminUniversities() {
   const [umForm,         setUmForm]         = useState({ ...EMPTY_UMAJOR })
   const [umEditId,       setUmEditId]       = useState<string | null>(null)
   const [umSaving,       setUmSaving]       = useState(false)
+  const [umError,        setUmError]        = useState<string | null>(null)
+  const [newMajorName,   setNewMajorName]   = useState('')
+  const [addMajorMode,   setAddMajorMode]   = useState(false)
+  const [majorSaving,    setMajorSaving]    = useState(false)
 
   const supabase = createSupabaseBrowserClient()
 
@@ -396,6 +400,7 @@ export default function AdminUniversities() {
   async function handleSaveUmajor() {
     if (!editingId || !umForm.major_id) return
     setUmSaving(true)
+    setUmError(null)
     const payload = {
       university_id: editingId,
       major_id:      umForm.major_id,
@@ -403,10 +408,10 @@ export default function AdminUniversities() {
     }
     if (umEditId) {
       const { error } = await supabase.from('university_majors').update(payload).eq('id', umEditId)
-      if (error) console.error('Update university_major error:', error)
+      if (error) { setUmError(`Ошибка: ${error.message} (${error.code})`); setUmSaving(false); return }
     } else {
       const { error } = await supabase.from('university_majors').insert(payload)
-      if (error) console.error('Insert university_major error:', error.message, error.code, error.details, error.hint)
+      if (error) { setUmError(`Ошибка: ${error.message} (${error.code})`); setUmSaving(false); return }
     }
     setUmSaving(false)
     resetUmForm()
@@ -417,6 +422,19 @@ export default function AdminUniversities() {
     if (!editingId) return
     await supabase.from('university_majors').delete().eq('id', id)
     loadUniMajors(editingId)
+  }
+
+  async function handleAddMajor() {
+    const name = newMajorName.trim()
+    if (!name) return
+    setMajorSaving(true)
+    const { data, error } = await supabase.from('majors').insert({ name }).select('id, name, code').single()
+    setMajorSaving(false)
+    if (error) { setUmError(`Ошибка создания: ${error.message}`); return }
+    setAllMajors(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+    setUmForm(prev => ({ ...prev, major_id: data.id }))
+    setNewMajorName('')
+    setAddMajorMode(false)
   }
 
   function editUmajor(um: UniversityMajor) {
@@ -767,20 +785,40 @@ export default function AdminUniversities() {
                           {umEditId ? 'Редактировать' : 'Добавить специальность'}
                         </p>
                         <div className="grid grid-cols-2 gap-3">
-                          <label className="flex flex-col gap-1">
-                            <span className="admin-label">Специальность *</span>
-                            <select className="inp" value={umForm.major_id} onChange={e => setUmForm(f => ({ ...f, major_id: e.target.value }))}>
-                              <option value="">— выбрать —</option>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center justify-between">
+                              <span className="admin-label">Специальность *</span>
+                              <button type="button" onClick={() => setAddMajorMode(v => !v)} className="text-xs text-[var(--accent)] hover:underline">+ Новая</button>
+                            </div>
+                            {addMajorMode && (
+                              <div className="flex gap-1.5 mb-1">
+                                <input
+                                  className="inp flex-1 text-xs"
+                                  placeholder="Название специальности"
+                                  value={newMajorName}
+                                  onChange={e => setNewMajorName(e.target.value)}
+                                  onKeyDown={e => e.key === 'Enter' && handleAddMajor()}
+                                />
+                                <button onClick={handleAddMajor} disabled={majorSaving || !newMajorName.trim()} className="btn-primary text-xs px-3">
+                                  {majorSaving ? <Loader2 size={11} className="animate-spin" /> : 'OK'}
+                                </button>
+                              </div>
+                            )}
+                            <select className="inp" value={umForm.major_id} onChange={e => setUmForm(prev => ({ ...prev, major_id: e.target.value }))}>
+                              <option value="">— выбрать ({allMajors.length}) —</option>
                               {allMajors.map(m => <option key={m.id} value={m.id}>{m.name}{m.code ? ` (${m.code})` : ''}</option>)}
                             </select>
-                          </label>
+                          </div>
                           <label className="flex flex-col gap-1">
                             <span className="admin-label">Уровень</span>
-                            <select className="inp" value={umForm.degree_level} onChange={e => setUmForm(f => ({ ...f, degree_level: e.target.value }))}>
+                            <select className="inp" value={umForm.degree_level} onChange={e => setUmForm(prev => ({ ...prev, degree_level: e.target.value }))}>
                               {DEGREE_OPTIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                             </select>
                           </label>
                         </div>
+                        {umError && (
+                          <p className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">{umError}</p>
+                        )}
                         <div className="flex gap-2">
                           {umEditId && (
                             <button onClick={resetUmForm} className="btn-secondary text-xs flex-1">Отмена</button>

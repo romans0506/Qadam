@@ -23,6 +23,7 @@ export default function AdminMajors() {
   const [form,        setForm]        = useState({ ...EMPTY_MAJOR })
   const [search,      setSearch]      = useState('')
   const [saving,      setSaving]      = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
 
   useEffect(() => { load() }, [])
 
@@ -46,6 +47,7 @@ export default function AdminMajors() {
   async function handleSave() {
     if (!form.name.trim()) return
     setSaving(true)
+    setError(null)
     const payload = {
       name: form.name.trim(),
       code: form.code.trim() || null,
@@ -53,9 +55,11 @@ export default function AdminMajors() {
       parent_id: form.parent_id || null,
     }
     if (editId) {
-      await supabase.from('majors').update(payload).eq('id', editId)
+      const { error: err } = await supabase.from('majors').update(payload).eq('id', editId)
+      if (err) { setError(`${err.message} (${err.code})`); setSaving(false); return }
     } else {
-      await supabase.from('majors').insert(payload)
+      const { error: err } = await supabase.from('majors').insert(payload)
+      if (err) { setError(`${err.message} (${err.code})`); setSaving(false); return }
     }
     setSaving(false)
     setOpen(false)
@@ -197,6 +201,9 @@ export default function AdminMajors() {
                 onChange={e => setForm({ ...form, description: e.target.value })} />
             </div>
 
+            {error && (
+              <p className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">{error}</p>
+            )}
             <button onClick={handleSave} disabled={saving || !form.name.trim()}
               className="btn-primary w-full disabled:opacity-50 flex items-center justify-center gap-2">
               {saving ? <><Loader2 size={14} className="animate-spin" /> Сохранение...</> : 'Сохранить'}
